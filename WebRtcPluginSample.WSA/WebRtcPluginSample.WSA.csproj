@@ -110,6 +110,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\WebRtcPluginSample.WSA.rd.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Signalling\" />
+  </ItemGroup>
   <Import Project="..\WebRtcPluginSample\WebRtcPluginSample.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
