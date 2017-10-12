@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebRtcPluginSample", "WebRtcPluginSample\WebRtcPluginSample.shproj", "{A805CE7D-3DD9-4F4A-BB7F-956439528E6A}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		WebRtcPluginSample\WebRtcPluginSample.projitems*{a805ce7d-3dd9-4f4a-bb7f-956439528e6a}*SharedItemsImports = 13
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BF4B1E61-DA36-42DC-94C0-1452100C66C5}
+	EndGlobalSection
+EndGlobal
