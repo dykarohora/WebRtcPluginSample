@@ -5,9 +5,59 @@ VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebRtcPluginSample", "WebRtcPluginSample\WebRtcPluginSample.shproj", "{A805CE7D-3DD9-4F4A-BB7F-956439528E6A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.WSA", "WebRtcPluginSample.WSA\WebRtcPluginSample.WSA.csproj", "{4825D741-CA4F-40DC-9571-E7156E946208}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.UnityEditor", "WebRtcPluginSample.UnityEditor\WebRtcPluginSample.UnityEditor.csproj", "{BEF391EE-3E64-41F8-BDF7-84172660173B}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		WebRtcPluginSample\WebRtcPluginSample.projitems*{4825d741-ca4f-40dc-9571-e7156e946208}*SharedItemsImports = 4
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{a805ce7d-3dd9-4f4a-bb7f-956439528e6a}*SharedItemsImports = 13
+		WebRtcPluginSample\WebRtcPluginSample.projitems*{bef391ee-3e64-41f8-bdf7-84172660173b}*SharedItemsImports = 4
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|ARM = Debug|ARM
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|ARM = Release|ARM
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|ARM.ActiveCfg = Debug|ARM
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|ARM.Build.0 = Debug|ARM
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|x64.ActiveCfg = Debug|x64
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|x64.Build.0 = Debug|x64
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|x86.ActiveCfg = Debug|x86
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Debug|x86.Build.0 = Debug|x86
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|ARM.ActiveCfg = Release|ARM
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|ARM.Build.0 = Release|ARM
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|x64.ActiveCfg = Release|x64
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|x64.Build.0 = Release|x64
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|x86.ActiveCfg = Release|x86
+		{4825D741-CA4F-40DC-9571-E7156E946208}.Release|x86.Build.0 = Release|x86
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|ARM.Build.0 = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|x64.Build.0 = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Debug|x86.Build.0 = Debug|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|ARM.ActiveCfg = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|ARM.Build.0 = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x64.ActiveCfg = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x64.Build.0 = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x86.ActiveCfg = Release|Any CPU
+		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

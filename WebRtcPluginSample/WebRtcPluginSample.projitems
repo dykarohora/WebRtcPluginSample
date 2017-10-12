@@ -9,5 +9,12 @@
     <Import_RootNamespace>WebRtcPluginSample</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Utilities\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Model\IceServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\Peer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Signalling\Conductor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signalling.cs" />
   </ItemGroup>
 </Project>
