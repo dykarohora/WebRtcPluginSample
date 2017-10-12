@@ -4,7 +4,7 @@ using System.Text;
 
 namespace WebRtcPluginSample.Signalling
 {
-    class Signalling
+    public class Signaller
     {
     }
 }

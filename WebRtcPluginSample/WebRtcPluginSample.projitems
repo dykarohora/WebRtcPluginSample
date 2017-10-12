@@ -15,6 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Model\IceServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\Peer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Conductor.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signalling.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signaller.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebRtcControl.cs" />
   </ItemGroup>
 </Project>
