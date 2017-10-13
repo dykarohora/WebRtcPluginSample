@@ -11,15 +11,24 @@ using System.Linq;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using WebRtcPluginSample.Model;
+using System.Threading.Tasks;
 
 namespace WebRtcPluginSample
 {
     public class WebRtcControl
     {
-        public event Action<string> OnStatusMessageUpdate;      // ステータス変更を通知するイベント
+        public event Action OnInitialized;                                          // 初期化完了時のイベント
+        public event Action<int, string> OnPeerMessageDataReceived;                 // メッセージを受信したときのイベント
+        public event Action<string> OnStatusMessageUpdate;                          // ステータス変更を通知するイベント
+        public event Action<int, IDataChannelMessage> OnPeerDataChannelReceived;    // データチャネルからデータを受信したときのイベント
+
+        #region Private Member
 
         private readonly CoreDispatcher _uiDispathcer;
 
+        private MediaVideoTrack _peerVideoTrack;
+        private MediaVideoTrack _selfVideoTrack;
+        #endregion
 
         public WebRtcControl()
         {
@@ -66,6 +75,10 @@ namespace WebRtcPluginSample
                 SelectedAudioPlayoutDevice = AudioPlayoutDevices.First();
             }
 
+            // ================================
+            // シグナリング関連のイベントハンドラ
+            // ================================
+
             // マシンに接続されたメディアデバイスが変更されたときのイベントハンドラ
             Conductor.Instance.Media.OnMediaDevicesChanged += OnMediaDeviceChanged;
             // リモートユーザがシグナリングサーバに接続してきたときのハンドラ
@@ -109,16 +122,117 @@ namespace WebRtcPluginSample
             };
             // シグナリングサーバからログアウトしたときのハンドラ
             Conductor.Instance.Signaller.OnDisconnected += () =>
-             {
-                 IsConnected = false;
-                 IsMicrophoneEnabled = false;
-                 IsCameraEnabled = false;
-                 IsDisconnecting = false;
-                 Peers?.Clear();
+            {
+                IsConnected = false;
+                IsMicrophoneEnabled = false;
+                IsCameraEnabled = false;
+                IsDisconnecting = false;
+                Peers?.Clear();
 
-                 OnStatusMessageUpdate?.Invoke("Disconnected");
-             };
+                OnStatusMessageUpdate?.Invoke("Disconnected");
+            };
+            // 
+            Conductor.Instance.OnReadyToConnect += () =>
+            {
+                IsReadyToConnect = true;
+            };
 
+
+            // =============================
+            // Peerコネクション関連のイベントハンドラ
+            // =============================
+
+            // Peerコネクションに自身のメディアストリームがセットされたときのイベントハンドラ
+            Conductor.Instance.OnAddLocalStream += Conductor_OnAddLocalStream;
+            // Peerコネクションからリモートユーザのメディアストリームが削除されたときのイベントハンドラ
+            Conductor.Instance.OnRemoveRemoteStream += Conductor_OnRemoveRemoteStream;
+            // 
+            Conductor.Instance.OnConnectionHealthStats += Conductor_OnPeerConnectionHealthStats;
+            // Peerコネクションが生成されたときのイベントハンドラ(通話開始)
+            Conductor.Instance.OnPeerConnectionCreated += () =>
+            {
+                IsReadyToConnect = false;
+                IsConnectedToPeer = true;
+                IsReadyToDisconnect = false;
+
+                IsCameraEnabled = true;
+                IsMicrophoneEnabled = true; // ??
+
+                OnStatusMessageUpdate?.Invoke("Peer Connection Created");
+            };
+            // Peerコネクションが破棄されたときのイベントハンドラ
+            Conductor.Instance.OnPeerConnectionClosed += () =>
+            {
+                IsConnectedToPeer = false;
+                _peerVideoTrack = null;
+                _selfVideoTrack = null;
+                IsMicrophoneEnabled = false;
+                IsCameraEnabled = false;
+            };
+            // Peer(リモートユーザ)からメッセージを受信したときのハンドラ
+            Conductor.Instance.OnPeerMessageDataReceived += (peerId, message) =>
+            {
+                OnPeerMessageDataReceived?.Invoke(peerId, message);
+            };
+
+            // =============================
+            // コーデック設定
+            // =============================
+
+            // オーディオコーデックの設定
+            AudioCodecs = new List<CodecInfo>();
+            var audioCodecList = WebRTC.GetAudioCodecs();
+            string[] incompatibleAudioCodecs = new string[] { "CN32000", "CN16000", "CN8000", "red8000", "telephone-event8000" };
+
+            foreach (var audioCodec in audioCodecList)
+            {
+                if (!incompatibleAudioCodecs.Contains(audioCodec.Name + audioCodec.ClockRate))
+                {
+                    AudioCodecs.Add(audioCodec);
+                }
+            }
+            if (AudioCodecs.Count > 0)
+            {
+                SelectedAudioCodec = AudioCodecs.First();
+            }
+
+            // ビデオコーデックの設定。デフォルトはH.264を使う
+            VideoCodecs = new List<CodecInfo>();
+            var videoCodecList = WebRTC.GetVideoCodecs().OrderBy(codec =>
+            {
+                switch (codec.Name)
+                {
+                    case "VP8": return 1;
+                    case "VP9": return 2;
+                    case "H264": return 3;
+                    default: return 99;
+                }
+            });
+
+            foreach (var videoCodec in videoCodecList)
+            {
+                VideoCodecs.Add(videoCodec);
+            }
+            if (VideoCodecs.Count > 0)
+            {
+                SelectedVideoCodec = VideoCodecs.FirstOrDefault(codec => codec.Name.Contains("H264"));
+            }
+
+            // =============================
+            // Iceサーバの設定
+            // =============================
+            IceServers = new List<IceServer>();
+            NewIceServer = new IceServer();
+
+            IceServers.Add(new IceServer("stun.l.google.com:19302", IceServer.ServerType.STUN));
+            IceServers.Add(new IceServer("stun1.l.google.com:19302", IceServer.ServerType.STUN));
+            IceServers.Add(new IceServer("stun2.l.google.com:19302", IceServer.ServerType.STUN));
+            IceServers.Add(new IceServer("stun3.l.google.com:19302", IceServer.ServerType.STUN));
+            IceServers.Add(new IceServer("stun4.l.google.com:19302", IceServer.ServerType.STUN));
+
+            Conductor.Instance.ConfigureIceServers(IceServers);
+
+            OnInitialized?.Invoke();
         }
 
         #region Event Handlers
@@ -286,7 +400,65 @@ namespace WebRtcPluginSample
         /// </summary>
         public Peer SelectedPeer { get; set; }
 
+        /// <summary>
+        /// Peerへの接続準備が完了し、通信開始待ちかどうか
+        /// </summary>
+        public bool IsReadyToConnect { get; set; }
 
+        /// <summary>
+        /// Peerと通話中かどうか
+        /// </summary>
+        public bool IsConnectedToPeer { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool IsReadyToDisconnect { get; set; }
+        
+        #endregion
+
+        /// <summary>
+        /// Iceサーバのリスト
+        /// </summary>
+        public List<IceServer> IceServers { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IceServer NewIceServer { get; set; }
+
+        #region Codec
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<CodecInfo> VideoCodecs { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<CodecInfo> AudioCodecs { get; set; }
+
+        /// <summary>
+        /// 選択中のビデオコーデック
+        /// </summary>
+        public CodecInfo SelectedVideoCodec {
+            get => Conductor.Instance.VideoCodec;
+            set {
+                if (Conductor.Instance.VideoCodec == value) return;
+                Conductor.Instance.VideoCodec = value;
+            }
+        }
+
+        /// <summary>
+        /// 選択中のオーディオコーデック
+        /// </summary>
+        public CodecInfo SelectedAudioCodec {
+            get => Conductor.Instance.AudioCodec;
+            set {
+                if (Conductor.Instance.AudioCodec == value) return;
+                Conductor.Instance.AudioCodec = value;
+            }
+        }
         #endregion
 
         #region MediaDevice Settings
@@ -475,6 +647,21 @@ namespace WebRtcPluginSample
         }
         private MediaDevice _selectedAudioPlayoutDevice;
         #endregion
+
+        /// <summary>
+        /// シグナリングサーバへの接続
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="peerName"></param>
+        public void ConnectToServer(string host, string port, string peerName)
+        {
+            Task.Run(() =>
+            {
+                IsConnecting = true;
+                Conductor.Instance.StartLogin(host, port, peerName);
+            });
+        }
 
         private void RunOnUiThread(Action fn)
         {

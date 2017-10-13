@@ -78,6 +78,8 @@ namespace WebRtcPluginSample.Model
         // =======================
         // constructor
         // =======================
+        public IceServer() : this(string.Empty, ServerType.STUN) { }
+
         public IceServer(string host, ServerType type)
         {
             Host = host;

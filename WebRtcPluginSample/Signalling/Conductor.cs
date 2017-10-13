@@ -168,7 +168,20 @@ namespace WebRtcPluginSample.Signalling
 
         public event Action<MediaStreamEvent> OnAddRemoteStream;
         public event Action<MediaStreamEvent> OnRemoveRemoteStream;
+
+        public event Action<RTCPeerConnectionHealthStats> OnConnectionHealthStats;
         #endregion
+
+        /// <summary>
+        /// シグナリングサーバへの接続
+        /// </summary>
+        /// <param name="server"></param>
+        /// <param name="port"></param>
+        /// <param name="peerName"></param>
+        public void StartLogin(string server, string port, string peerName ="")
+        {
+            
+        }
 
         /// <summary>
         /// WebRTCライブラリにカメラデバイスが使用する解像度とFPSを設定する
@@ -179,6 +192,26 @@ namespace WebRtcPluginSample.Signalling
             {
                 WebRTC.SetPreferredVideoCaptureFormat(
                     (int)VideoCaptureProfile.Width, (int)VideoCaptureProfile.Height, (int)VideoCaptureProfile.FrameRate);
+            }
+        }
+
+        /// <summary>
+        /// Iceサーバのリストを更新
+        /// </summary>
+        /// <param name="iceServers"></param>
+        public void ConfigureIceServers(IList<IceServer> iceServers)
+        {
+            _iceServers.Clear();
+            foreach(IceServer iceServer in iceServers)
+            {
+                string url = "stun:";
+                if (iceServer.Type == IceServer.ServerType.TURN) url = "turn:";
+                RTCIceServer server = null;
+                url += iceServer.Host;
+                server = new RTCIceServer { Url = url };
+                if (iceServer.Credential != null) server.Credential = iceServer.Credential;
+                if (iceServer.Username != null) server.Username = iceServer.Username;
+                _iceServers.Add(server);
             }
         }
     }
