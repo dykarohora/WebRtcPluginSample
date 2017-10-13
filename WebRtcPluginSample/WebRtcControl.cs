@@ -70,7 +70,7 @@ namespace WebRtcPluginSample
             Conductor.Instance.Media.OnMediaDevicesChanged += OnMediaDeviceChanged;
             // リモートユーザがシグナリングサーバに接続してきたときのハンドラ
             // 自分の初回ログイン、ポーリング時の新規ユーザ追加時にコールされる
-            // TODO 選択方法を工夫したいところ
+            // TODO 接続ユーザの選択方法を工夫したいところ
             Conductor.Instance.Signaller.OnPeerConnected += (peerId, peerName) =>
             {
                 // リモートユーザのリストを行進する

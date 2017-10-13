@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using WebRtcPluginSample.Model;
+using System.Threading;
+using System.Threading.Tasks;
 
 #if NETFX_CORE
 using Org.WebRtc;
@@ -82,10 +84,20 @@ namespace WebRtcPluginSample.Signalling
         private readonly Media _media;
 
         public Peer Peer;
+
+        /// <summary>
+        /// シグナリングサーバに接続しているリモートユーザのリスト
+        /// </summary>
         public List<Peer> Peers;
 
+        /// <summary>
+        /// 
+        /// </summary>
         private MediaStream _mediaStream;
 
+        /// <summary>
+        /// Iceサーバのリスト
+        /// </summary>
         private readonly List<RTCIceServer> _iceServers;
 
         /// <summary>
@@ -111,7 +123,6 @@ namespace WebRtcPluginSample.Signalling
         /// <summary>
         /// 
         /// </summary>
-        private bool _etwStatsEnabled;
         public bool ETWStatsEnabled {
             get => _etwStatsEnabled;
             set {
@@ -120,6 +131,44 @@ namespace WebRtcPluginSample.Signalling
                     _peerConnection.EtwStatsEnabled = value;
             }
         }
+        private bool _etwStatsEnabled;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool PeerConnectionStatsEnabled {
+            get => _peerConnectionStatsEnabled;
+            set {
+                _peerConnectionStatsEnabled = value;
+                if(_peerConnection != null)
+                {
+                    _peerConnection.ConnectionHealthStatsEnabled = value;
+                }
+            }
+        }
+        public bool _peerConnectionStatsEnabled;
+
+        public object MediaLock { get; set; } = new object();
+
+        CancellationTokenSource _connectToPeerCancelationTokeSource;
+        Task<bool> _connectToPeerTask;
+
+        #region Event
+        /// <summary>
+        /// 
+        /// </summary>
+        public event Action<MediaStreamEvent> OnAddLocalStream;
+
+        public event Action OnPeerConnectionCreated;
+        public event Action OnPeerConnectionClosed;
+        public event Action OnReadyToConnect;
+
+        public event Action<int, string> OnPeerMessageDataReceived;
+        public event Action<int, string> OnPeerDataChannelReceived;
+
+        public event Action<MediaStreamEvent> OnAddRemoteStream;
+        public event Action<MediaStreamEvent> OnRemoveRemoteStream;
+        #endregion
 
         /// <summary>
         /// WebRTCライブラリにカメラデバイスが使用する解像度とFPSを設定する
