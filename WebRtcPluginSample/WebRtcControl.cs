@@ -662,6 +662,24 @@ namespace WebRtcPluginSample
                 Conductor.Instance.StartLogin(host, port, peerName);
             });
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        public void ConnectToPeer()
+        {
+            Debug.WriteLine("Device Status: SelectedCamera: {0} - SelectedMic: {1}", SelectedCamera == null ? "NULL" : "OK", SelectedMicrophone == null ? "NULL" : "OK");
+            if(SelectedPeer != null)
+            {
+                Task.Run(() =>
+                {
+                    Conductor.Instance.ConnectToPeer(SelectedPeer);
+                });
+            } else
+            {
+                OnStatusMessageUpdate?.Invoke("SelectedPeer not  set");
+            }
+        }
 
         private void RunOnUiThread(Action fn)
         {

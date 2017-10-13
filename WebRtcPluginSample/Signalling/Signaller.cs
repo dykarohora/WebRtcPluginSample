@@ -21,12 +21,27 @@ namespace WebRtcPluginSample.Signalling
 
     public class Signaller
     {
+        /// <summary>
+        /// シグナリングサーバへの接続(ログイン)が完了したときのイベント
+        /// </summary>
         public event SignedInDelegate OnSignedIn;
+        /// <summary>
+        /// シグナリングサーバから切断(ログアウト)が完了したときのイベント
+        /// </summary>
         public event DisconnectedDelegate OnDisconnected;
-        public event PeerConnectedDelegate OnPeerConnected;         // リモートユーザがシグナリングサーバに接続してきたときのイベント
-        public event PeerDisconnectedDelegate OnPeerDisconnected;   // リモートユーザがシグナリングサーバからログアウトしたときのイベント
+        /// <summary>
+        /// リモートユーザがシグナリングサーバに接続してきたときのイベント
+        /// </summary>
+        public event PeerConnectedDelegate OnPeerConnected;
+        /// <summary>
+        /// リモートユーザがシグナリングサーバからログアウトしたときのイベント 
+        /// </summary>
+        public event PeerDisconnectedDelegate OnPeerDisconnected;
         public event PeerHangupDelegate OnPeerHangup;
         public event MessageFromPeerDelegate OnMessageFromPeer;
+        /// <summary>
+        /// シグナリングサーバへの接続(ログイン)が失敗したときのイベント
+        /// </summary>
         public event ServerConnectionFailureDelegate OnServerConnectionFailure; // シグナリングサーバへの接続が失敗したときのイベント
 
         public enum State
@@ -130,7 +145,40 @@ namespace WebRtcPluginSample.Signalling
 
                         int pos = eoh + 4;      // レスポンスボディの開始位置
 
-                        // TODO
+                        if(_myId == peer_id)
+                        {
+                            int id = 0;                 // リモートユーザのID
+                            string name = "";           // リモートユーザのクライアント名
+                            bool connected = false;     // trueはログイン, falseはログアウト
+                            // レスポンスボディをパースしてリモートユーザのログイン/ログアウトを処理
+                            if(ParseEntry(buffer.Substring(pos), ref name, ref id, ref connected))
+                            {
+                                if(connected)
+                                {
+                                    _peers[id] = name;
+                                    OnPeerConnected?.Invoke(id, name);
+                                } else
+                                {
+                                    _peers.Remove(id);
+                                    OnPeerDisconnected?.Invoke(id);
+                                }
+                            }
+                        } else
+                        {
+                            //
+                            string message = buffer.Substring(pos);
+                            if(message == "BYE")
+                            {
+                                OnPeerHangup?.Invoke(peer_id);
+                            } else
+                            {
+                                OnMessageFromPeer?.Invoke(peer_id, message);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine("[Error] Signaling: Long-polling exception: {0}", e.Message);
                     }
                 }
             }
@@ -269,7 +317,7 @@ namespace WebRtcPluginSample.Signalling
         }
 
         /// <summary>
-        /// レスポンスからPragmaヘッダ(自分のPeerID)の値とヘッダの終わり位置を取得する
+        /// レスポンスからPragmaヘッダ(自分/通話相手のPeerID)の値とヘッダの終わり位置を取得する
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="peerId"></param>
