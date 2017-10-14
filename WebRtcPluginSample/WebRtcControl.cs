@@ -361,7 +361,38 @@ namespace WebRtcPluginSample
             });
         }
 
+        /// <summary>
+        /// ローカルストリームがPeerコネクションに追加されたときのハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void Conductor_OnAddLocalStream(MediaStreamEvent evt)
+        {
+            if(evt == null)
+            {
+                var msg = "Conductor_OnAddLocalStream--media stream NULL";
+                Debug.WriteLine(msg);
+                OnStatusMessageUpdate.Invoke(msg);
+            }
+            _selfVideoTrack = evt.Stream.GetVideoTracks().FirstOrDefault();
+            if(_selfVideoTrack != null)
+            {
+                if (IsCameraEnabled) Conductor.Instance.EnableLocalVideoStream();
+                else Conductor.Instance.DisableLocalVideoStream();
 
+                if (IsMicrophoneEnabled) Conductor.Instance.UnmuteMicrophone();
+                else Conductor.Instance.MuteMicrophone();
+            }
+        }
+
+        private void Conductor_OnRemoveRemoteStream(MediaStreamEvent evt)
+        {
+
+        }
+
+        private void Conductor_OnPeerConnectionHealthStats(RTCPeerConnectionHealthStats stats)
+        {
+            
+        }
         #endregion
 
         #region Properties
@@ -664,7 +695,7 @@ namespace WebRtcPluginSample
         }
         
         /// <summary>
-        /// 
+        /// 通話の開始
         /// </summary>
         public void ConnectToPeer()
         {

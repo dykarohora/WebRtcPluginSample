@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-
+#if NETFX_CORE
 using Org.WebRtc;
+#endif
 
 namespace WebRtcPluginSample.Utilities
 {
-    class SdpUtils
+    public class SdpUtils
     {
         /// <summary>
         /// Forces the SDP to use the selected audio and video codecs.

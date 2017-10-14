@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Windows.Data.Json;
 using Windows.Networking;
 using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
@@ -117,7 +118,7 @@ namespace WebRtcPluginSample.Signalling
         }
 
         /// <summary>
-        /// ポーリング
+        /// シグナリングサーバ接続後のポーリングリクエスト
         /// </summary>
         /// <returns></returns>
         private async Task HangingGetReadLoopAsync()
@@ -316,6 +317,42 @@ namespace WebRtcPluginSample.Signalling
             _state = State.NOT_CONNECTED;
         }
 
+        /// <summary>
+        /// 指定したPeer(リモートユーザ)にメッセージを送信する
+        /// </summary>
+        /// <param name="peerId"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public async Task<bool> SendToPeer(int peerId, string message)
+        {
+            // シグナリングサーバに接続していない場合はfalse
+            if (_state != State.CONNECTED) return false;
+            Debug.Assert(IsConnceted());
+            // 引数のpeerIDが不正でもfalse
+            if (!IsConnceted() || peerId == -1) return false;
+
+            string buffer = string.Format(
+                "POST /message?peer_id={0}&to={1} HTTP/1.0\r\n" +
+                "Content-Length: {2}\r\n" +
+                "Content-Type: text/plain\r\n" +
+                "\r\n" +
+                "{3}",
+                _myId, peerId, message.Length, message);
+
+            return await ControlSocketRequestAsync(buffer);
+        }
+
+        /// <summary>
+        /// 指定したPeer(リモートユーザ)にJson形式のメッセージを送信する
+        /// </summary>
+        /// <param name="peerId"></param>
+        /// <param name="json"></param>
+        /// <returns></returns>
+        public async Task<bool> SendToPeer(int peerId, IJsonValue json)
+        {
+            string message = json.Stringify();
+            return await SendToPeer(peerId, message);
+        }
         /// <summary>
         /// レスポンスからPragmaヘッダ(自分/通話相手のPeerID)の値とヘッダの終わり位置を取得する
         /// </summary>

@@ -5,9 +5,14 @@ using WebRtcPluginSample.Model;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Linq;
+using Windows.Data.Json;
 
 #if NETFX_CORE
 using Org.WebRtc;
+using Windows.Networking.Connectivity;
+using Windows.Networking;
+using WebRtcPluginSample.Utilities;
 #endif
 
 namespace WebRtcPluginSample.Signalling
@@ -92,7 +97,7 @@ namespace WebRtcPluginSample.Signalling
         public List<Peer> Peers;
 
         /// <summary>
-        /// 
+        /// ローカルのメディアストリーム
         /// </summary>
         private MediaStream _mediaStream;
 
@@ -117,7 +122,7 @@ namespace WebRtcPluginSample.Signalling
         private bool AudioEnabled;
 
         /// <summary>
-        /// 
+        /// ORTC
         /// </summary>
         private string SessionId;
 
@@ -156,11 +161,16 @@ namespace WebRtcPluginSample.Signalling
 
         #region Event
         /// <summary>
-        /// 
+        /// Peerコネクションにローカルストリームをセットしたときのイベント
         /// </summary>
         public event Action<MediaStreamEvent> OnAddLocalStream;
-
+        /// <summary>
+        /// Peerコネクションを作成したときのイベント
+        /// </summary>
         public event Action OnPeerConnectionCreated;
+        /// <summary>
+        /// 通話を終了してPeerコネクションを破棄したときのイベント
+        /// </summary>
         public event Action OnPeerConnectionClosed;
         public event Action OnReadyToConnect;
 
@@ -183,6 +193,17 @@ namespace WebRtcPluginSample.Signalling
         {
             if (_signaller.IsConnceted()) return;
             _signaller.Connect(server, port, peerName == string.Empty ? GetLocalPeerName() : peerName);
+        }
+
+        /// <summary>
+        /// クライアント名を取得
+        /// </summary>
+        /// <returns></returns>
+        private string GetLocalPeerName()
+        {
+            var hostname = NetworkInformation.GetHostNames().FirstOrDefault(h => h.Type == HostNameType.DomainName);
+            string ret = hostname?.CanonicalName ?? "<unknown host>";
+            return ret;
         }
 
         /// <summary>
@@ -214,11 +235,15 @@ namespace WebRtcPluginSample.Signalling
                 _peerId = peer.Id;
                 // SDPオファーの作成
                 var offer = await _peerConnection.CreateOffer();
-
                 string newSdp = offer.Sdp;
-
+                SdpUtils.SelectCodecs(ref newSdp, AudioCodec, VideoCodec);
+                offer.Sdp = newSdp;
+                // PeerコネクションにローカルSDPをセットする
+                await _peerConnection.SetLocalDescription(offer);
+                Debug.WriteLine("Conductor: Sending offer.");
+                // SDPオファーの送信
+                SendSdp(offer);
             }
-            
         }
 
         /// <summary>
@@ -264,7 +289,7 @@ namespace WebRtcPluginSample.Signalling
             _peerConnection.OnRemoveStream += PeerConnection_OnRemoveStream;
             // 
             _peerConnection.OnConnectionHealthStats += PeerConnection_OnConnectionHealthStats;
-
+            
             // データチャネルのセットアップ
             _peerSendDataChannel = _peerConnection.CreateDataChannel(
                 "SendDataChannel", new RTCDataChannelInit() { Ordered = true });
@@ -285,6 +310,7 @@ namespace WebRtcPluginSample.Signalling
             };
             // タスクがキャンセルされていないか
             if (cancelationToken.IsCancellationRequested) return false;
+
             // ローカルメディアストリームの作成
             _mediaStream = await _media.GetUserMedia(mediaStreamConstraints);
             // タスクがキャンセルされていないか
@@ -297,6 +323,135 @@ namespace WebRtcPluginSample.Signalling
             if (cancelationToken.IsCancellationRequested) return false;
             return true;
         }
+
+        /// <summary>
+        /// SDPを送信する
+        /// </summary>
+        /// <param name="description"></param>
+        private void SendSdp(RTCSessionDescription description)
+        {
+            JsonObject json = null;
+            json = new JsonObject();
+            json.Add(kSessionDescriptionTypeName, JsonValue.CreateStringValue(description.Type.GetValueOrDefault().ToString().ToLower()));
+            json.Add(kSessionDescriptionSdpName, JsonValue.CreateStringValue(description.Sdp));
+
+            SendMessage(json);
+        }
+
+        /// <summary>
+        /// JSON形式のメッセージを送信する
+        /// </summary>
+        /// <param name="json"></param>
+        private void SendMessage(IJsonValue json)
+        {
+            var task = _signaller.SendToPeer(_peerId, json);
+        }
+
+        /// <summary>
+        /// 相手との通話を終了する
+        /// </summary>
+        /// <returns></returns>
+        public async Task DisconnectFromPeer() {
+            await SendHangupMessage();
+            ClosePeerConnection();
+        }
+
+        private void ClosePeerConnection()
+        {
+            lock(MediaLock)
+            {
+                if(_peerConnection != null)
+                {
+                    _peerId = -1;
+                    if(_mediaStream != null)
+                    {
+                        foreach(var track in _mediaStream.GetTracks())
+                        {
+                            if(track != null)
+                            {
+                                if (track.Enabled)
+                                {
+                                    track.Stop();
+                                }
+                                _mediaStream.RemoveTrack(track);
+                            }
+                        }
+                    }
+                    _mediaStream = null;
+
+                    if(_peerSendDataChannel != null)
+                    {
+                        _peerSendDataChannel.Close();
+                        _peerSendDataChannel = null;
+                    }
+
+                    if(_peerReceiveDataChannel != null)
+                    {
+                        _peerReceiveDataChannel.Close();
+                        _peerReceiveDataChannel = null;
+                    }
+
+                    OnPeerConnectionClosed?.Invoke();
+                    _peerConnection.Close();
+
+                    SessionId = null;
+                    _peerConnection = null;
+
+                    OnReadyToConnect?.Invoke();
+                }
+            }
+        }
+
+        private async Task SendHangupMessage()
+        {
+            await _signaller.SendToPeer(_peerId, "BYE");
+        }
+
+        /// <summary>
+        /// 新しいICE候補が見つかった時のイベントハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnIceCandidate(RTCPeerConnectionIceEvent evt)
+        {
+            if (evt.Candidate == null) return;
+
+            double index = null != evt.Candidate.SdpMLineIndex ? (double)evt.Candidate.SdpMLineIndex : -1;
+            JsonObject json;
+
+            json = new JsonObject
+            {
+                {kCandidateSdpMidName, JsonValue.CreateStringValue(evt.Candidate.SdpMid) },
+                {kCandidateSdpMlineIndexName, JsonValue.CreateNumberValue(index) },
+                {kCandidateSdpName, JsonValue.CreateStringValue(evt.Candidate.Candidate) }
+            };
+
+            Debug.WriteLine("Conductor: Sending ice candidate.\n" + json.Stringify());
+            SendMessage(json);
+        }
+
+        /// <summary>
+        /// リモートユーザのメディアストリームがPeerコネクションに追加されたときのハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnAddStream(MediaStreamEvent evt)
+        {
+            OnAddRemoteStream?.Invoke(evt);
+        }
+
+        /// <summary>
+        /// リモートユーザのメディアストリームがPeerコネクションから外されたときのハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnRemoveStream(MediaStreamEvent evt)
+        {
+            OnRemoveRemoteStream?.Invoke(evt);
+        }
+
+        private void PeerConnection_OnConnectionHealthStats(RTCPeerConnectionHealthStats stats)
+        {
+            OnConnectionHealthStats?.Invoke(stats);
+        }
+
 
         // ===========================
         // Constructor
@@ -313,8 +468,150 @@ namespace WebRtcPluginSample.Signalling
             Signaller.OnPeerDisconnected += Signaller_OnPeerDisconnected;
             Signaller.OnServerConnectionFailure += Signaller_OnServerConnectionFailed;
             Signaller.OnSignedIn += Signaller_OnSignedIn;
+
+            _iceServers = new List<RTCIceServer>();
         }
 
+        /// <summary>
+        /// リモートユーザからメッセージを受信したときのハンドラ
+        /// SDPオファー/アンサーの処理、ICE受信時の処理を行う
+        /// </summary>
+        /// <param name="peerId"></param>
+        /// <param name="message"></param>
+        private void Signaller_OnMeesageFromPeer(int peerId, string message)
+        {
+            Task.Run(async () =>
+            {
+                Debug.Assert(_peerId == peerId || _peerId == -1);
+                Debug.Assert(message.Length > 0);
+
+                // 通話相手からのメッセージではない、かつPeerコネクション生成済みなら何もしない
+                if (_peerId != peerId && _peerId != -1)
+                {
+                    Debug.WriteLine("[Error] Conductor: Received a message from unknown peer while already in a conversation with a different peer.");
+                    return;
+                }
+
+                JsonObject jMessage;
+                // Jsonへのパースが失敗
+                if (!JsonObject.TryParse(message, out jMessage))
+                {
+                    Debug.WriteLine("[Error] Conductor: Received unknown message." + message);
+                    return;
+                }
+
+                string type = jMessage.ContainsKey(kSessionDescriptionTypeName) ? jMessage.GetNamedString(kSessionDescriptionTypeName) : null;
+                // Peerコネクションが生成されていない = まだ通話相手が決まっていない場合
+                if (_peerConnection == null)
+                {
+                    // Peerコネクションを生成する
+                    if (!string.IsNullOrEmpty(type))
+                    {
+                        if (type == "offer" || type == "answer" || type == "json")
+                        {
+                            Debug.Assert(_peerId == -1);
+                            _peerId = peerId;
+
+                            IEnumerable<Peer> enumerablePeer = Peers.Where(x => x.Id == peerId);
+                            Peer = enumerablePeer.First();
+
+                            _connectToPeerCancelationTokenSource = new CancellationTokenSource();
+                            _connectToPeerTask = CreatePeerConnection(_connectToPeerCancelationTokenSource.Token);
+                            bool connectResult = await _connectToPeerTask;
+                            _connectToPeerTask = null;
+                            _connectToPeerCancelationTokenSource.Dispose();
+
+                            if (!connectResult)
+                            {
+                                Debug.WriteLine("[Error] Conductor: Failed to initialize our PeerConnection instance");
+                                await Signaller.SignOut();
+                                return;
+                            }
+                            else if (_peerId != peerId)
+                            {
+                                Debug.WriteLine("[Error] Conductor: Received a message from unknown peer while already in a conversation with a different peer.");
+                                return;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.WriteLine("[Warn] Conductor: Received an untyped message after closing peer connection.");
+                        return;
+                    }
+                }
+                // SDPを受信
+                if (_peerConnection != null && !string.IsNullOrEmpty(type))
+                {
+                    if (type == kMessageDataType)
+                    {
+                        OnPeerMessageDataReceived?.Invoke(peerId, message);
+                    }
+
+                    if (type == "offer-loopback")
+                    {
+                        Debug.Assert(false);
+                    }
+
+                    string sdp = null;
+                    // JSONメッセージからSDPを取得する
+                    sdp = jMessage.ContainsKey(kSessionDescriptionSdpName) ? jMessage.GetNamedString(kSessionDescriptionSdpName) : null;
+                    if (string.IsNullOrEmpty(sdp))
+                    {
+                        Debug.WriteLine("[Error] Conductor: Can't parse received session description message.");
+                        return;
+                    }
+
+                    RTCSdpType messageType = RTCSdpType.Offer;
+                    switch (type)
+                    {
+                        case "offer": messageType = RTCSdpType.Offer; break;
+                        case "answer": messageType = RTCSdpType.Answer; break;
+                        case "preanswer": messageType = RTCSdpType.Pranswer; break;
+                        default: Debug.Assert(false, type); break;
+                    }
+
+                    Debug.WriteLine("Conductor: Received session description: " + message);
+                    // Peerコネクションに受信したSDPをリモートSDPとしてセット
+                    await _peerConnection.SetRemoteDescription(new RTCSessionDescription(messageType, sdp));
+                    // 受信したメッセージがOfferであった場合はSDPアンサーを返信する
+                    if (messageType == RTCSdpType.Offer)
+                    {
+                        var answer = await _peerConnection.CreateAnswer();
+                        await _peerConnection.SetLocalDescription(answer);
+                        SendSdp(answer);
+                    }
+                }
+                else
+                // ICEを受信
+                {
+                    RTCIceCandidate candidate = null;
+                    var sdpMid = jMessage.ContainsKey(kCandidateSdpMidName)
+                            ? jMessage.GetNamedString(kCandidateSdpMidName)
+                            : null;
+                    var sdpMlineIndex = jMessage.ContainsKey(kCandidateSdpMlineIndexName)
+                        ? jMessage.GetNamedNumber(kCandidateSdpMlineIndexName)
+                        : -1;
+                    var sdp = jMessage.ContainsKey(kCandidateSdpName)
+                        ? jMessage.GetNamedString(kCandidateSdpName)
+                        : null;
+                    if (string.IsNullOrEmpty(sdpMid) || sdpMlineIndex == -1 || string.IsNullOrEmpty(sdp))
+                    {
+                        Debug.WriteLine("[Error] Conductor: Can't parse received message.\n" + message);
+                        return;
+                    }
+                    candidate = new RTCIceCandidate(sdp, sdpMid, (ushort)sdpMlineIndex);
+                    await _peerConnection.AddIceCandidate(candidate);
+                    Debug.WriteLine("Conductor: Received candidate : " + message);
+
+                }
+            }).Wait();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="peerId"></param>
         private void Signaller_OnPeerHangup(int peerId)
         {
             if (peerId != _peerId) return;
@@ -323,15 +620,30 @@ namespace WebRtcPluginSample.Signalling
             ClosePeerConnection();
         }
 
+        /// <summary>
+        /// シグナリングサーバへの接続が完了したときのイベントハンドラ
+        /// </summary>
         private void Signaller_OnSignedIn() { }
 
+        /// <summary>
+        /// シグナリングサーバからログアウトしたときのイベントハンドラ
+        /// </summary>
         private void Signaller_OnDisconnected()
         {
             ClosePeerConnection();
         }
 
+        /// <summary>
+        /// リモートユーザがシグナリングサーバに接続してきたときのイベントハンドラ
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
         private void Signaller_OnPeerConnected(int id, string name) { }
 
+        /// <summary>
+        /// リモートユーザがシグナリングサーバからログアウトしたときのイベントハンドラ
+        /// </summary>
+        /// <param name="peerId"></param>
         private void Signaller_OnPeerDisconnected(int peerId)
         {
             if (peerId != _peerId && peerId != 0) return;
@@ -339,6 +651,9 @@ namespace WebRtcPluginSample.Signalling
             ClosePeerConnection();
         }
 
+        /// <summary>
+        /// シグナリングサーバへのせつぞくが失敗したときのイベントハンドラ
+        /// </summary>
         private void Signaller_OnServerConnectionFailed()
         {
             Debug.WriteLine("[Error]: Connection to server failed!");
@@ -375,6 +690,59 @@ namespace WebRtcPluginSample.Signalling
                 if (iceServer.Username != null) server.Username = iceServer.Username;
                 _iceServers.Add(server);
             }
+        }
+
+        public void EnableLocalVideoStream()
+        {
+            lock(MediaLock)
+            {
+                if(_mediaStream != null)
+                {
+                    foreach(MediaVideoTrack videoTrack in _mediaStream.GetVideoTracks())
+                    {
+                        videoTrack.Enabled = true;
+                    }
+                }
+                VideoEnabled = true;
+            }
+        }
+
+        public void DisableLocalVideoStream()
+        {
+            lock(MediaLock)
+            {
+                if(_mediaStream != null)
+                {
+                    foreach(MediaVideoTrack videoTrack in _mediaStream.GetVideoTracks())
+                    {
+                        videoTrack.Enabled = false;
+                    }
+                }
+                VideoEnabled = false;
+            }
+        }
+
+        public void UnmuteMicrophone()
+        {
+            if(_mediaStream != null)
+            {
+                foreach(MediaAudioTrack audioTrack in _mediaStream.GetAudioTracks())
+                {
+                    audioTrack.Enabled = true;
+                }
+            }
+            AudioEnabled = true;
+        }
+
+        public void MuteMicrophone()
+        {
+            if(_mediaStream != null)
+            {
+                foreach(MediaAudioTrack audioTrack in _mediaStream.GetAudioTracks())
+                {
+                    audioTrack.Enabled = false;
+                }
+            } AudioEnabled = false;
         }
     }
 }
