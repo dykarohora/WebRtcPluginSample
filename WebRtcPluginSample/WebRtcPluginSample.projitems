@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Model\IceServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\MediaDeviceManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\Peer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Conductor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signaller.cs" />

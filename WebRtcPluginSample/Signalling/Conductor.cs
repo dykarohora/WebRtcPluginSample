@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Linq;
-using Windows.Data.Json;
 
 #if NETFX_CORE
 using Org.WebRtc;
+using Windows.Data.Json;
 using Windows.Networking.Connectivity;
 using Windows.Networking;
 using WebRtcPluginSample.Utilities;
@@ -294,13 +294,13 @@ namespace WebRtcPluginSample.Signalling
             _peerSendDataChannel = _peerConnection.CreateDataChannel(
                 "SendDataChannel", new RTCDataChannelInit() { Ordered = true });
             // データチャネルがオープンされたときのイベント
-            _peerSendDataChannel.OnOpen += PeerSendDataChannel_OnOpen;
+            // _peerSendDataChannel.OnOpen += PeerSendDataChannel_OnOpen;
             // データチャネルがクローズされたときのイベント
-            _peerSendDataChannel.OnClose += PeerDataChannel_OnClose;
+            // _peerSendDataChannel.OnClose += PeerDataChannel_OnClose;
             // データチャネル上でエラーが発生したときのイベント
-            _peerSendDataChannel.OnError += PeerSendDataChannel_OnError;
+            // _peerSendDataChannel.OnError += PeerSendDataChannel_OnError;
             // リモート側でデータチャネルがオープンしたときのイベント
-            _peerConnection.OnDataChannel += PeerConnection_OnDataChannel;
+            // _peerConnection.OnDataChannel += PeerConnection_OnDataChannel;
 
             Debug.WriteLine("Conductor+ Getting user media.");
             RTCMediaStreamConstraints mediaStreamConstraints = new RTCMediaStreamConstraints

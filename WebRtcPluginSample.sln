@@ -9,11 +9,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.WSA", "W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.UnityEditor", "WebRtcPluginSample.UnityEditor\WebRtcPluginSample.UnityEditor.csproj", "{BEF391EE-3E64-41F8-BDF7-84172660173B}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebRtcPluginSampleTest", "WebRtcPluginSampleTest\WebRtcPluginSampleTest.shproj", "{D4EFFEF8-0BB3-4793-89AC-CC09B80BBF4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSampleTest.WSA", "WebRtcPluginSampleTest.WSA\WebRtcPluginSampleTest.WSA.csproj", "{7E25050F-D6D8-46FD-97D4-C34EC311585A}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{4825d741-ca4f-40dc-9571-e7156e946208}*SharedItemsImports = 4
+		WebRtcPluginSampleTest\WebRtcPluginSampleTest.projitems*{7e25050f-d6d8-46fd-97d4-c34ec311585a}*SharedItemsImports = 4
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{a805ce7d-3dd9-4f4a-bb7f-956439528e6a}*SharedItemsImports = 13
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{bef391ee-3e64-41f8-bdf7-84172660173b}*SharedItemsImports = 4
+		WebRtcPluginSampleTest\WebRtcPluginSampleTest.projitems*{d4effef8-0bb3-4793-89ac-cc09b80bbf4d}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +64,26 @@ Global
 		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x64.Build.0 = Release|Any CPU
 		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x86.ActiveCfg = Release|Any CPU
 		{BEF391EE-3E64-41F8-BDF7-84172660173B}.Release|x86.Build.0 = Release|Any CPU
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|ARM.ActiveCfg = Debug|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|ARM.Build.0 = Debug|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|ARM.Deploy.0 = Debug|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x64.ActiveCfg = Debug|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x64.Build.0 = Debug|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x64.Deploy.0 = Debug|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x86.ActiveCfg = Debug|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x86.Build.0 = Debug|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Debug|x86.Deploy.0 = Debug|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|Any CPU.ActiveCfg = Release|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|ARM.ActiveCfg = Release|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|ARM.Build.0 = Release|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|ARM.Deploy.0 = Release|ARM
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x64.ActiveCfg = Release|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x64.Build.0 = Release|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x64.Deploy.0 = Release|x64
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.ActiveCfg = Release|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.Build.0 = Release|x86
+		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
