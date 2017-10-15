@@ -9,5 +9,6 @@
     <Import_RootNamespace>WebRtcPluginSampleTest</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Model\" />
   </ItemGroup>
 </Project>

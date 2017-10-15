@@ -16,14 +16,14 @@ namespace WebRtcPluginSampleTest.WSA.Model
     public class MediaDeviceManagerTest
     {
         [TestMethod]
-        public void GetAllDeviceTest()
+        public async void GetAllDeviceTest()
         {
             WebRTC.Initialize(CoreApplication.MainView.CoreWindow.Dispatcher);
             var media = Media.CreateMedia();
 
             var mediaDeviceManager = new MediaDeviceManager(media);
 
-            mediaDeviceManager.GetAllDeviceList().Wait();
+            await mediaDeviceManager.GetAllDeviceList();
 
             Assert.AreNotEqual(0, mediaDeviceManager.Cameras.Count);
             Assert.AreNotEqual(0, mediaDeviceManager.Microphones.Count);

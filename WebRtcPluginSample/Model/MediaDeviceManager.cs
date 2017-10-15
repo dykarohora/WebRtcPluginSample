@@ -27,6 +27,22 @@ namespace WebRtcPluginSample.Model
         public List<MediaDevice> Microphones { get; } = new List<MediaDevice>();
         public List<MediaDevice> AudioPlayoutDevices { get; } = new List<MediaDevice>();
 
+        // 選択中のメディアデバイス
+        private MediaDevice _selectedCamera;
+        public MediaDevice SelectedCamera { get; set; }
+
+        public string SelectedResolution { get; set; }
+        public CaptureCapability SelectedFps { get; set; }
+
+        private MediaDevice _selectedMicrophone;
+        public MediaDevice SelectedMicrophone {
+            get;
+            set;
+        }
+
+        private MediaDevice _selectedAudioPlayoutDevice;
+        public MediaDevice SelectedAudioPlayoutDevice { get; set; }
+
         // ===============================
         //
         // ===============================
@@ -53,11 +69,8 @@ namespace WebRtcPluginSample.Model
             var task = Task.Run(() =>
             {
                 foreach (var videoCaptureDevice in _media.GetVideoCaptureDevices())
-                {
                     Cameras.Add(videoCaptureDevice);
-                }
             });
-
             return task;
         }
 
@@ -66,11 +79,8 @@ namespace WebRtcPluginSample.Model
             var task = Task.Run(() =>
             {
                 foreach (var audioCaptureDevice in _media.GetAudioCaptureDevices())
-                {
                     Microphones.Add(audioCaptureDevice);
-                }
             });
-
             return task;
         }
 
@@ -79,11 +89,8 @@ namespace WebRtcPluginSample.Model
             var task = Task.Run(() =>
             {
                 foreach (var audioPlayoutDevice in _media.GetAudioPlayoutDevices())
-                {
                     AudioPlayoutDevices.Add(audioPlayoutDevice);
-                }
             });
-
             return task;
         }
     }
