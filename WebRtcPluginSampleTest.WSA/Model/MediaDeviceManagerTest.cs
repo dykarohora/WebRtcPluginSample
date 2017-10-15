@@ -16,7 +16,7 @@ namespace WebRtcPluginSampleTest.WSA.Model
     public class MediaDeviceManagerTest
     {
         [TestMethod]
-        public async void GetAllDeviceTest()
+        public async Task GetAllDeviceTest()
         {
             WebRTC.Initialize(CoreApplication.MainView.CoreWindow.Dispatcher);
             var media = Media.CreateMedia();
@@ -25,9 +25,19 @@ namespace WebRtcPluginSampleTest.WSA.Model
 
             await mediaDeviceManager.GetAllDeviceList();
 
+            await Task.Run(() => { mediaDeviceManager.SelectedCamera = mediaDeviceManager.Cameras.FirstOrDefault(); });
+            
+            
             Assert.AreNotEqual(0, mediaDeviceManager.Cameras.Count);
             Assert.AreNotEqual(0, mediaDeviceManager.Microphones.Count);
             Assert.AreNotEqual(0, mediaDeviceManager.AudioPlayoutDevices.Count);
+
+            Assert.IsNotNull(mediaDeviceManager.SelectedCamera);
+
+            Assert.AreNotEqual(0, mediaDeviceManager.SupportedResolutions.Count);
+
+            // Assert.IsNotNull(mediaDeviceManager.SelectedCamera);
+            // Assert.IsNotNull(mediaDeviceManager.SelectedResolution);
         }
     }
 }
