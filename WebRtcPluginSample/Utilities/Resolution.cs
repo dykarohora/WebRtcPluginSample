@@ -25,5 +25,13 @@ namespace WebRtcPluginSample.Utilities
             Resolution target = obj as Resolution;
             return (Width == target.Width) && (Height == target.Height);
         }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 859600377;
+            hashCode = hashCode * -1521134295 + Width.GetHashCode();
+            hashCode = hashCode * -1521134295 + Height.GetHashCode();
+            return hashCode;
+        }
     }
 }

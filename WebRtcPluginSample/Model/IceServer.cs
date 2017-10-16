@@ -4,7 +4,7 @@ using System.Text;
 
 namespace WebRtcPluginSample.Model
 {
-    public class IceServer
+    internal class IceServer
     {
         public enum ServerType { STUN, TURN }
 

@@ -19,7 +19,7 @@ namespace WebRtcPluginSample.Signalling
     public delegate void MessageSentDelegate(int err);
     public delegate void ServerConnectionFailureDelegate();
 
-    public class Signaller
+    internal class Signaller
     {
         /// <summary>
         /// シグナリングサーバへの接続(ログイン)が完了したときのイベント

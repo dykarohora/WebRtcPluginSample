@@ -18,6 +18,5 @@
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signaller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Resolution.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\SdpUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)WebRtcControl.cs" />
   </ItemGroup>
 </Project>

@@ -7,7 +7,7 @@ using Org.WebRtc;
 
 namespace WebRtcPluginSample.Utilities
 {
-    public class SdpUtils
+    internal class SdpUtils
     {
         /// <summary>
         /// Forces the SDP to use the selected audio and video codecs.

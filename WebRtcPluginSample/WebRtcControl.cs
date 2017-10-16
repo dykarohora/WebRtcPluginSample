@@ -146,12 +146,6 @@ namespace WebRtcPluginSample
             // Peerコネクション関連のイベントハンドラ
             // =============================
 
-            // Peerコネクションに自身のメディアストリームがセットされたときのイベントハンドラ
-            Conductor.Instance.OnAddLocalStream += Conductor_OnAddLocalStream;
-            // Peerコネクションからリモートユーザのメディアストリームが削除されたときのイベントハンドラ
-            Conductor.Instance.OnRemoveRemoteStream += Conductor_OnRemoveRemoteStream;
-            // 
-            Conductor.Instance.OnConnectionHealthStats += Conductor_OnPeerConnectionHealthStats;
             // Peerコネクションが生成されたときのイベントハンドラ(通話開始)
             Conductor.Instance.OnPeerConnectionCreated += () =>
             {
@@ -242,38 +236,6 @@ namespace WebRtcPluginSample
 
         #region Event Handlers
 
-        /// <summary>
-        /// ローカルストリームがPeerコネクションに追加されたときのハンドラ
-        /// </summary>
-        /// <param name="evt"></param>
-        private void Conductor_OnAddLocalStream(MediaStreamEvent evt)
-        {
-            if(evt == null)
-            {
-                var msg = "Conductor_OnAddLocalStream--media stream NULL";
-                Debug.WriteLine(msg);
-                OnStatusMessageUpdate.Invoke(msg);
-            }
-            _selfVideoTrack = evt.Stream.GetVideoTracks().FirstOrDefault();
-            if(_selfVideoTrack != null)
-            {
-                if (IsCameraEnabled) Conductor.Instance.EnableLocalVideoStream();
-                else Conductor.Instance.DisableLocalVideoStream();
-
-                if (IsMicrophoneEnabled) Conductor.Instance.UnmuteMicrophone();
-                else Conductor.Instance.MuteMicrophone();
-            }
-        }
-
-        private void Conductor_OnRemoveRemoteStream(MediaStreamEvent evt)
-        {
-
-        }
-
-        private void Conductor_OnPeerConnectionHealthStats(RTCPeerConnectionHealthStats stats)
-        {
-            
-        }
         #endregion
 
         /// <summary>
@@ -325,37 +287,5 @@ namespace WebRtcPluginSample
         /// 
         /// </summary>
         public bool IsReadyToDisconnect { get; set; }
-        
-        /// <summary>
-        /// シグナリングサーバへの接続
-        /// </summary>
-        /// <param name="host"></param>
-        /// <param name="port"></param>
-        /// <param name="peerName"></param>
-        public void ConnectToServer(string host, string port, string peerName)
-        {
-            Task.Run(() =>
-            {
-                IsConnecting = true;
-                Conductor.Instance.StartLogin(host, port, peerName);
-            });
-        }
-        
-        /// <summary>
-        /// 通話の開始
-        /// </summary>
-        public void ConnectToPeer()
-        {
-            if(SelectedPeer != null)
-            {
-                Task.Run(() =>
-                {
-                    Conductor.Instance.ConnectToPeer(SelectedPeer);
-                });
-            } else
-            {
-                OnStatusMessageUpdate?.Invoke("SelectedPeer not  set");
-            }
-        }
     }
 }

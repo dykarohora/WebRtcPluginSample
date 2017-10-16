@@ -79,13 +79,19 @@ namespace WebRtcPluginSample.Manager
                 if(_selectedFps != value)
                 {
                     _selectedFps = value;
-                    // TODO: 要リファクタ
-                    Conductor.Instance.VideoCaptureProfile = value;
-                    Conductor.Instance.UpdatePreferredFrameFormat();
+                    WebRTC.SetPreferredVideoCaptureFormat(
+                        (int)_selectedFps.Width, (int)_selectedFps.Height, (int)_selectedFps.FrameRate);
                 }
             }
         }
         private CaptureCapability _selectedFps;
+
+        /// <summary>
+        /// 現在設定されているCaptureCapability
+        /// </summary>
+        public CaptureCapability SelectedVideoCaptureProfile {
+            get => _selectedFps;
+        }
 
         /// <summary>
         /// 選択中のマイクデバイス
