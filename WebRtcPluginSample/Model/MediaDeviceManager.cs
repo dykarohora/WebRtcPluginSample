@@ -20,8 +20,6 @@ namespace WebRtcPluginSample.Model
         /// </summary>
         private Media _media;
 
-        private readonly object _lock = new object();
-
         private readonly object _resolutionLock = new object();
         private readonly object _fpsCapLock = new object();
 
