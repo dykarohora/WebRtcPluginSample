@@ -6,10 +6,10 @@ namespace WebRtcPluginSample.Utilities
 {
     internal class Resolution
     {
-        public int Width { get; }
-        public int Height { get; }
+        public uint Width { get; }
+        public uint Height { get; }
 
-        public Resolution(int width, int height)
+        public Resolution(uint width, uint height)
         {
             Width = width;
             Height = height;
@@ -18,6 +18,12 @@ namespace WebRtcPluginSample.Utilities
         public override string ToString()
         {
             return Width + " x " + Height;
+        }
+
+        public override bool Equals(object obj)
+        {
+            Resolution target = obj as Resolution;
+            return (Width == target.Width) && (Height == target.Height);
         }
     }
 }
