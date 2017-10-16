@@ -27,17 +27,17 @@ namespace WebRtcPluginSampleTest.WSA.Model
 
             await Task.Run(() => { mediaDeviceManager.SelectedCamera = mediaDeviceManager.Cameras.FirstOrDefault(); });
             
-            
             Assert.AreNotEqual(0, mediaDeviceManager.Cameras.Count);
             Assert.AreNotEqual(0, mediaDeviceManager.Microphones.Count);
             Assert.AreNotEqual(0, mediaDeviceManager.AudioPlayoutDevices.Count);
+            Assert.AreNotEqual(0, mediaDeviceManager.SupportedResolutions.Count);
+            Assert.AreNotEqual(0, mediaDeviceManager.SupportedFpsList.Count);
 
             Assert.IsNotNull(mediaDeviceManager.SelectedCamera);
+            Assert.IsNotNull(mediaDeviceManager.SelectedResolution);
+            Assert.IsNotNull(mediaDeviceManager.SelectedFps);
 
-            Assert.AreNotEqual(0, mediaDeviceManager.SupportedResolutions.Count);
 
-            // Assert.IsNotNull(mediaDeviceManager.SelectedCamera);
-            // Assert.IsNotNull(mediaDeviceManager.SelectedResolution);
         }
     }
 }

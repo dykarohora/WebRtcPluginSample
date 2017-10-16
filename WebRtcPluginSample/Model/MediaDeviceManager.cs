@@ -30,8 +30,8 @@ namespace WebRtcPluginSample.Model
         public List<MediaDevice> Microphones { get; } = new List<MediaDevice>();
         public List<MediaDevice> AudioPlayoutDevices { get; } = new List<MediaDevice>();
         // 選択中のカメラデバイスがサポートする解像度とFPSのリスト
-        public List<string> SupportedResolutions { get; } = new List<string>();
-        // public List<Resolution> SupportedResolutions { get; } = new List<Resolution>();
+        // public List<string> SupportedResolutions { get; } = new List<string>();
+        public List<Resolution> SupportedResolutions { get; } = new List<Resolution>();
         public List<CaptureCapability> SupportedFpsList { get; } = new List<CaptureCapability>();
 
         /// <summary>
@@ -48,42 +48,10 @@ namespace WebRtcPluginSample.Model
 
                     SetupResolutionList().Wait();
                     SelectedResolution = SupportedResolutions.FirstOrDefault();
-                    /*
-                    // 解像度設定
-                    SupportedResolutions.Clear();
-
-                    var opRes = SelectedCamera.GetVideoCaptureCapabilities();
-                    opRes.AsTask().ContinueWith(resolutions =>
-                    {
-                        if (resolutions.IsFaulted)
-                        {
-                            Exception ex = resolutions.Exception;
-                            // TODO: Error Handling
-                            return;
-                        }
-
-                        if (resolutions.Result == null)
-                        {
-                            // TODO: Error Handling
-                            return;
-                        }
-
-                        var uniqueRes = resolutions.Result.GroupBy(test => test.ResolutionDescription).Select(grp => grp.First()).ToList();
-                        foreach (var resolution in uniqueRes)
-                        {
-                            var w = resolution.Width;
-                            var h = resolution.Height;
-                            // SupportedResolutions.Add(new Resolution(w, h));
-                            SupportedResolutions.Add(resolution.ResolutionDescription);
-                        }
-                        SelectedResolution = SupportedResolutions.FirstOrDefault();
-                    });
-                    */
                 }
             }
         }
         private MediaDevice _selectedCamera;
-
         private async Task SetupResolutionList()
         {
             SupportedResolutions.Clear();
@@ -108,51 +76,52 @@ namespace WebRtcPluginSample.Model
                 {
                     var w = resolution.Width;
                     var h = resolution.Height;
-                    // SupportedResolutions.Add(new Resolution(w, h));
-                    SupportedResolutions.Add(resolution.ResolutionDescription);
+                    SupportedResolutions.Add(new Resolution(w, h));
+                    // SupportedResolutions.Add(resolution.ResolutionDescription);
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         /// <summary>
         /// 選択中のカメラ解像度
         /// </summary>
-        public string SelectedResolution {
+        public Resolution SelectedResolution {
             get => _selectedResolution;
             set {
-                SupportedFpsList.Clear();
-
                 if(SelectedCamera != null)
                 {
-                    var opCap = SelectedCamera.GetVideoCaptureCapabilities();
-                    opCap.AsTask().ContinueWith(caps =>
-                    {
-                        if(caps.IsFaulted)
-                        {
-                            // TODO
-                            return;
-                        }
-
-                        if(caps.Result == null)
-                        {
-                            // TODO
-                            return;
-                        }
-
-                        // 設定した解像度がサポートするFPSを抽出してリスト化
-                        var fpsList = from cap in caps.Result where cap.ResolutionDescription == value select cap;
-                        
-                        foreach(var fps in fpsList)
-                        {
-                            SupportedFpsList.Add(fps);
-                        }
-                        SelectedFps = SupportedFpsList.FirstOrDefault();
-                    });
+                    _selectedResolution = value;
+                    SetupFpsList(_selectedResolution).Wait();
+                    SelectedFps = SupportedFpsList.FirstOrDefault();
                 }
-                _selectedResolution = value;
             }
         }
-        private string _selectedResolution;
+        private Resolution _selectedResolution;
+        private async Task SetupFpsList(Resolution resolution)
+        {
+            SupportedFpsList.Clear();
+            var task = SelectedCamera.GetVideoCaptureCapabilities();
+            await task.AsTask().ContinueWith(caps =>
+            {
+                if (caps.IsFaulted)
+                {
+                    // TODO
+                    return;
+                }
+
+                if (caps.Result == null)
+                {
+                    // TODO
+                    return;
+                }
+
+                var fpsList = from cap in caps.Result where cap.ResolutionDescription == resolution select cap;
+                foreach (var fps in fpsList)
+                {
+                    SupportedFpsList.Add(fps);
+                }
+            }).ConfigureAwait(false);
+        }
 
         /// <summary>
         /// 選択中のカメラフレームレート

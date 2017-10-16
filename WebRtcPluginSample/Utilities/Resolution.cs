@@ -6,8 +6,8 @@ namespace WebRtcPluginSample.Utilities
 {
     internal class Resolution
     {
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public int Width { get; }
+        public int Height { get; }
 
         public Resolution(int width, int height)
         {
