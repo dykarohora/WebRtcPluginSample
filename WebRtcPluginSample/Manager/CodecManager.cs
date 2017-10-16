@@ -1,9 +1,11 @@
-﻿using Org.WebRtc;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
+#if NETFX_CORE
+using Org.WebRtc;
+#endif
 
 namespace WebRtcPluginSample.Manager
 {
@@ -20,6 +22,7 @@ namespace WebRtcPluginSample.Manager
         // Properties
         // ===============================
 
+        #if NETFX_CORE
         /// <summary>
         /// デバイス上でサポートしているオーディオコーデックの一覧
         /// </summary>
@@ -33,7 +36,7 @@ namespace WebRtcPluginSample.Manager
         public CodecInfo SelectedAudioCodec { get; set; }
 
         public CodecInfo SelectedVideoCodec { get; set; }
-
+        #endif
         // ===============================
         // Public Method
         // ===============================
@@ -62,6 +65,7 @@ namespace WebRtcPluginSample.Manager
         {
             var task = Task.Run(() =>
             {
+                #if NETFX_CORE
                 if (VideoCodecs.Count > 0)
                 {
                     lock (_videoLock)
@@ -82,6 +86,11 @@ namespace WebRtcPluginSample.Manager
                 {
                     return false;
                 }
+                #else
+
+                return false;
+
+                #endif
             });
             return task;
         }
@@ -96,6 +105,7 @@ namespace WebRtcPluginSample.Manager
         {
             var task = Task.Run(() =>
             {
+#if NETFX_CORE
                 if(AudioCodecs.Count > 0)
                 {
                     lock(_audioLock)
@@ -115,6 +125,11 @@ namespace WebRtcPluginSample.Manager
                 {
                     return false;
                 }
+                #else
+
+                return false;
+
+                #endif
             });
             return task;
         }
@@ -128,11 +143,13 @@ namespace WebRtcPluginSample.Manager
         {
             var task = Task.Run(() =>
             {
+                #if NETFX_CORE
                 lock (_audioLock)
                 {
                     foreach (var codec in WebRTC.GetAudioCodecs())
                         AudioCodecs.Add(codec);
                 }
+                #endif
             });
             return task;
         }
@@ -141,6 +158,7 @@ namespace WebRtcPluginSample.Manager
         {
             var task = Task.Run(() =>
             {
+                #if NETFX_CORE
                 var videoCodecList = WebRTC.GetVideoCodecs().OrderBy(CodecInfo =>
                 {
                     switch (CodecInfo.Name)
@@ -156,6 +174,7 @@ namespace WebRtcPluginSample.Manager
                     foreach (var videoCodec in videoCodecList)
                         VideoCodecs.Add(videoCodec);
                 }
+                #endif
             });
             return task;
         }

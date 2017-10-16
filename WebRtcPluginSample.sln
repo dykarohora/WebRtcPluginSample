@@ -9,9 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.WSA", "W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSampleTest.WSA", "WebRtcPluginSampleTest.WSA\WebRtcPluginSampleTest.WSA.csproj", "{7E25050F-D6D8-46FD-97D4-C34EC311585A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcPluginSample.UnityEditor", "WebRtcPluginSample.UnityEditor\WebRtcPluginSample.UnityEditor.csproj", "{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{4825d741-ca4f-40dc-9571-e7156e946208}*SharedItemsImports = 4
+		WebRtcPluginSample\WebRtcPluginSample.projitems*{95ad1628-3811-40bf-a3e6-5a7d74ab9ac3}*SharedItemsImports = 4
 		WebRtcPluginSample\WebRtcPluginSample.projitems*{a805ce7d-3dd9-4f4a-bb7f-956439528e6a}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +64,22 @@ Global
 		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.ActiveCfg = Release|x86
 		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.Build.0 = Release|x86
 		{7E25050F-D6D8-46FD-97D4-C34EC311585A}.Release|x86.Deploy.0 = Release|x86
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|ARM.Build.0 = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|x64.Build.0 = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Debug|x86.Build.0 = Debug|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|ARM.ActiveCfg = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|ARM.Build.0 = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|x64.ActiveCfg = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|x64.Build.0 = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|x86.ActiveCfg = Release|Any CPU
+		{95AD1628-3811-40BF-A3E6-5A7D74AB9AC3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

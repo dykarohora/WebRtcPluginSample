@@ -5,16 +5,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Linq;
-using Windows.UI.Core;
-using Windows.ApplicationModel.Core;
 using WebRtcPluginSample.Manager;
+using WebRtcPluginSample.Utilities;
 
 #if NETFX_CORE
 using Org.WebRtc;
+using Windows.UI.Core;
+using Windows.ApplicationModel.Core;
 using Windows.Data.Json;
 using Windows.Networking.Connectivity;
 using Windows.Networking;
-using WebRtcPluginSample.Utilities;
 #endif
 
 namespace WebRtcPluginSample.Signalling
@@ -30,12 +30,8 @@ namespace WebRtcPluginSample.Signalling
 
         private static Conductor _instance;
 
+#if NETFX_CORE
         private readonly CoreDispatcher _coreDispatcher;
-
-        // 各種マネージャ
-        private MediaDeviceManager _mediaDeviceManager;
-        private CodecManager _codecManager;
-        private IceServerManager _iceServerManager;
 
         /// <summary>
         /// Peerコネクションオブジェクト
@@ -48,14 +44,23 @@ namespace WebRtcPluginSample.Signalling
         private MediaStream _mediaStream;
 
         /// <summary>
+        /// メディアデバイスを操作するためのオブジェクト
+        /// </summary>
+        private readonly Media _media;
+#endif
+
+        // 各種マネージャ
+        private MediaDeviceManager _mediaDeviceManager;
+        private CodecManager _codecManager;
+        private IceServerManager _iceServerManager;
+
+
+        /// <summary>
         /// 通信相手のID
         /// </summary>
         private int _peerId = -1;
 
-        /// <summary>
-        /// メディアデバイスを操作するためのオブジェクト
-        /// </summary>
-        private readonly Media _media;
+        // private Peer Peer;
 
         // SDPネゴシエーション用の属性
         private static readonly string kCandidateSdpMidName = "sdpMid";
@@ -68,6 +73,11 @@ namespace WebRtcPluginSample.Signalling
         private CancellationTokenSource _connectToPeerCancelationTokenSource;
         private Task<bool> _connectToPeerTask;
 
+#if NETFX_CORE
+        private MediaVideoTrack _peerVideoTrack;
+        private EncodedVideoSource _encodedVideoSource;
+#endif
+
         // ===========================
         // Properties
         // ===========================
@@ -77,11 +87,11 @@ namespace WebRtcPluginSample.Signalling
         /// </summary>
         public static Conductor Instance {
             get {
-                if(_instance == null)
+                if (_instance == null)
                 {
                     lock (_lock)
                     {
-                        if(_instance == null)
+                        if (_instance == null)
                         {
                             _instance = new Conductor();
                         }
@@ -90,7 +100,7 @@ namespace WebRtcPluginSample.Signalling
                 return _instance;
             }
         }
-        
+
         /// <summary>
         /// シグナリング用クライアント
         /// </summary>
@@ -103,8 +113,9 @@ namespace WebRtcPluginSample.Signalling
         public bool IsEnableVideo {
             get => _isEnabledVideo;
             set {
-                if(_isEnabledVideo != value)
+                if (_isEnabledVideo != value)
                 {
+#if NETFX_CORE
                     lock(_mediaLock)
                     {
                         if(_mediaStream != null)
@@ -115,6 +126,7 @@ namespace WebRtcPluginSample.Signalling
                             }
                         }
                     }
+#endif
                     _isEnabledVideo = value;
                 }
             }
@@ -127,8 +139,9 @@ namespace WebRtcPluginSample.Signalling
         public bool IsEnabledAudio {
             get => _isEnabledAudio;
             set {
-                if(_isEnabledAudio != value)
+                if (_isEnabledAudio != value)
                 {
+#if NETFX_CORE
                     lock(_mediaLock)
                     {
                         if(_mediaStream != null)
@@ -139,11 +152,23 @@ namespace WebRtcPluginSample.Signalling
                             }
                         }
                     }
+#endif
                     _isEnabledAudio = value;
                 }
             }
         }
         private bool _isEnabledAudio = false;
+
+        /// <summary>
+        /// シグナリングサーバに接続しているリモートユーザのリスト
+        /// </summary>
+        public List<Peer> Peers {
+            get;
+        } = new List<Peer>();
+
+        internal MediaDeviceManager MediaDeviceManager { get => _mediaDeviceManager; }
+        internal CodecManager CodecManager { get => _codecManager; }
+        internal IceServerManager IceServerManager { get => _iceServerManager; }
 
         // ===========================
         // Constructor
@@ -151,22 +176,17 @@ namespace WebRtcPluginSample.Signalling
         private Conductor()
         {
             _signaller = new Signaller();
+#if NETFX_CORE
             _media = Media.CreateMedia();
 
             Signaller.OnDisconnected += Signaller_OnDisconnected;
             Signaller.OnMessageFromPeer += Signaller_OnMeesageFromPeer;
             Signaller.OnPeerHangup += Signaller_OnPeerHangup;
+            Signaller.OnPeerConnected += Signaller_OnPeerConnected;
             Signaller.OnPeerDisconnected += Signaller_OnPeerDisconnected;
-
             _coreDispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
+#endif
         }
-
-        internal Peer Peer;
-
-        /// <summary>
-        /// シグナリングサーバに接続しているリモートユーザのリスト
-        /// </summary>
-        internal List<Peer> Peers;
 
         // ===========================
         // Event
@@ -175,7 +195,7 @@ namespace WebRtcPluginSample.Signalling
         /// <summary>
         /// Peerコネクションにローカルストリームをセットしたときのイベント
         /// </summary>
-        public event Action<MediaStreamEvent> OnAddLocalStream;
+        // public event Action<MediaStreamEvent> OnAddLocalStream;
 
         /// <summary>
         /// Peerコネクションを作成したときのイベント
@@ -194,8 +214,17 @@ namespace WebRtcPluginSample.Signalling
 
         public event Action<int, string> OnPeerMessageDataReceived;
 
-        public event Action<MediaStreamEvent> OnAddRemoteStream;
-        public event Action<MediaStreamEvent> OnRemoveRemoteStream;
+        /// <summary>
+        /// PeerのメディアストリームがPeerコネクションに追加されたときのイベント
+        /// </summary>
+        // public event Action<MediaStreamEvent> OnAddRemoteStream;
+
+        /// <summary>
+        /// PeerのメディアストリームがPeerコネクションから削除されたときのイベント
+        /// </summary>
+        // public event Action<MediaStreamEvent> OnRemoveRemoteStream;
+
+        public event Action<uint, uint, byte[]> OnEncodedVideoFrame;
         #endregion
 
         // ===========================
@@ -207,6 +236,7 @@ namespace WebRtcPluginSample.Signalling
         /// </summary>
         public async Task Initialize()
         {
+#if NETFX_CORE
             WebRTC.Initialize(_coreDispatcher);
 
             _mediaDeviceManager = new MediaDeviceManager(_media);
@@ -223,9 +253,7 @@ namespace WebRtcPluginSample.Signalling
             _codecManager.SelectedAudioCodec = _codecManager.AudioCodecs.FirstOrDefault();
             _codecManager.SelectedVideoCodec = _codecManager.VideoCodecs.FirstOrDefault();
             await selectCameraTask;
-
-
-
+#endif
         }
 
         /// <summary>
@@ -234,7 +262,7 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="server"></param>
         /// <param name="port"></param>
         /// <param name="peerName"></param>
-        public void StartLogin(string server, string port, string peerName ="")
+        public void StartLogin(string server, string port, string peerName = "")
         {
             if (_signaller.IsConnceted()) return;
             _signaller.Connect(server, port, peerName == string.Empty ? GetLocalPeerName() : peerName);
@@ -249,7 +277,7 @@ namespace WebRtcPluginSample.Signalling
         {
             Debug.Assert(peer != null);
             Debug.Assert(_peerId == -1);
-
+#if NETFX_CORE
             // すでに通話を実施している
             if (_peerConnection != null)
             {
@@ -275,13 +303,15 @@ namespace WebRtcPluginSample.Signalling
                 await _peerConnection.SetLocalDescription(offer);
                 SendSdp(offer);
             }
+#endif
         }
 
         /// <summary>
         /// 相手との通話を終了する
         /// </summary>
         /// <returns></returns>
-        public async Task DisconnectFromPeer() {
+        public async Task DisconnectFromPeer()
+        {
             await _signaller.SendToPeer(_peerId, "BYE");
             ClosePeerConnection();
         }
@@ -289,18 +319,22 @@ namespace WebRtcPluginSample.Signalling
         // ===========================
         // Helper Method
         // ===========================
-
         /// <summary>
         /// クライアント名を取得
         /// </summary>
         /// <returns></returns>
         private string GetLocalPeerName()
         {
+#if NETFX_CORE
             var hostname = NetworkInformation.GetHostNames().FirstOrDefault(h => h.Type == HostNameType.DomainName);
             string ret = hostname?.CanonicalName ?? "<unknown host>";
             return ret;
+#else
+            return string.Empty;
+#endif
         }
 
+#if NETFX_CORE
         /// <summary>
         /// Peerコネクションをつくる
         /// </summary>
@@ -359,7 +393,7 @@ namespace WebRtcPluginSample.Signalling
             // Peerコネクションにローカルストリーム
             _peerConnection.AddStream(_mediaStream);
             // イベント発火
-            OnAddLocalStream?.Invoke(new MediaStreamEvent() { Stream = _mediaStream });
+            // OnAddLocalStream?.Invoke(new MediaStreamEvent() { Stream = _mediaStream });
             // タスクがキャンセルされていないか
             if (cancelationToken.IsCancellationRequested) return false;
             return true;
@@ -387,12 +421,14 @@ namespace WebRtcPluginSample.Signalling
         {
             var task = _signaller.SendToPeer(_peerId, json);
         }
+#endif
 
         /// <summary>
         /// Peerコネクションの破棄
         /// </summary>
         private void ClosePeerConnection()
         {
+#if NETFX_CORE
             lock(_mediaLock)
             {
                 if(_peerConnection != null)
@@ -413,6 +449,7 @@ namespace WebRtcPluginSample.Signalling
                         }
                     }
                     _mediaStream = null;
+                    _peerVideoTrack = null;
 
                     OnPeerConnectionClosed?.Invoke();
                     _peerConnection.Close();
@@ -421,13 +458,15 @@ namespace WebRtcPluginSample.Signalling
                     OnReadyToConnect?.Invoke();
                 }
             }
+#endif
         }
 
         // ===========================
         // EventHandler
         // ===========================
+#if NETFX_CORE
 
-        #region Signalling client's EventHandler
+#region Signalling client's EventHandler
         /// <summary>
         /// リモートユーザからメッセージを受信したときのハンドラ
         /// SDPオファー/アンサーの処理、ICE受信時の処理を行う
@@ -468,8 +507,8 @@ namespace WebRtcPluginSample.Signalling
                             Debug.Assert(_peerId == -1);
                             _peerId = peerId;
 
-                            IEnumerable<Peer> enumerablePeer = Peers.Where(x => x.Id == peerId);
-                            Peer = enumerablePeer.First();
+                            // IEnumerable<Peer> enumerablePeer = Peers.Where(x => x.Id == peerId);
+                            // Peer = enumerablePeer.First();
 
                             _connectToPeerCancelationTokenSource = new CancellationTokenSource();
                             _connectToPeerTask = CreatePeerConnection(_connectToPeerCancelationTokenSource.Token);
@@ -559,6 +598,7 @@ namespace WebRtcPluginSample.Signalling
 
                 }
             }).Wait();
+
         }
 
         /// <summary>
@@ -582,19 +622,29 @@ namespace WebRtcPluginSample.Signalling
         }
 
         /// <summary>
+        /// リモートユーザがシグナリングサーバにログインしたときのハンドラ
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        private void Signaller_OnPeerConnected(int id, string name)
+        {
+            Peers.Add(new Peer { Id = id, Name = name });
+        }
+
+        /// <summary>
         /// リモートユーザがシグナリングサーバからログアウトしたときのイベントハンドラ
         /// </summary>
         /// <param name="peerId"></param>
         private void Signaller_OnPeerDisconnected(int peerId)
         {
+            var peerToRemove = Peers?.FirstOrDefault(p => p.Id == peerId);
             if (peerId != _peerId && peerId != 0) return;
-            Debug.WriteLine("Conductor: Our peer disconnected.");
             ClosePeerConnection();
         }
 
-        #endregion
+#endregion
 
-        #region PeerConnections EventHandler
+#region PeerConnections EventHandler
 
         /// <summary>
         /// 新しいICE候補が見つかった時のイベントハンドラ
@@ -624,7 +674,19 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="evt"></param>
         private void PeerConnection_OnAddStream(MediaStreamEvent evt)
         {
-            OnAddRemoteStream?.Invoke(evt);
+            _peerVideoTrack = evt.Stream.GetVideoTracks().FirstOrDefault();
+            if (_peerVideoTrack != null)
+            {
+                _encodedVideoSource = _media.CreateEncodedVideoSource(_peerVideoTrack);
+                _encodedVideoSource.OnEncodedVideoFrame += EncodedVideoSource_OnEncodedVideoFrame;
+            }
+
+            // OnAddRemoteStream?.Invoke(evt);
+        }
+
+        private void EncodedVideoSource_OnEncodedVideoFrame(uint w, uint h, byte[] data)
+        {
+            OnEncodedVideoFrame?.Invoke(w, h, data);
         }
 
         /// <summary>
@@ -633,10 +695,14 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="evt"></param>
         private void PeerConnection_OnRemoveStream(MediaStreamEvent evt)
         {
-            OnRemoveRemoteStream?.Invoke(evt);
+            _encodedVideoSource.OnEncodedVideoFrame -= EncodedVideoSource_OnEncodedVideoFrame;
+            _encodedVideoSource.Dispose();
+            _encodedVideoSource = null;
+
+            // OnRemoveRemoteStream?.Invoke(evt);
         }
 
-        #endregion
-
+#endregion
+#endif
     }
 }

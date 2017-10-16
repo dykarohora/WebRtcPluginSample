@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-
-using Org.WebRtc;
-using System.Threading.Tasks;
-using WebRtcPluginSample.Signalling;
 using System.Linq;
+using System.Threading.Tasks;
 using WebRtcPluginSample.Utilities;
+
+#if NETFX_CORE
+using Org.WebRtc;
+#endif
 
 namespace WebRtcPluginSample.Manager
 {
@@ -15,10 +16,12 @@ namespace WebRtcPluginSample.Manager
         // Private Member
         // ===============================
 
+#if NETFX_CORE
         /// <summary>
         /// メディアデバイスへアクセスするためのオブジェクト
         /// </summary>
         private Media _media;
+#endif
 
         private readonly object _resolutionLock = new object();
         private readonly object _fpsCapLock = new object();
@@ -27,6 +30,7 @@ namespace WebRtcPluginSample.Manager
         // Properties
         // ===============================
 
+#if NETFX_CORE
         // 各メディアデバイスのリスト
         public List<MediaDevice> Cameras { get; } = new List<MediaDevice>();
         public List<MediaDevice> Microphones { get; } = new List<MediaDevice>();
@@ -124,24 +128,28 @@ namespace WebRtcPluginSample.Manager
             }
         }
         private MediaDevice _selectedAudioPlayoutDevice;
-
+#endif
         // ===============================
         // Constructor
         // ===============================
         public MediaDeviceManager()
         {
+#if NETFX_CORE
             _media = Media.CreateMedia();
+#endif
         }
-        
+
+#if NETFX_CORE
         public MediaDeviceManager(Media media)
         {
             _media = media;
         }
+#endif
 
-        // ===============================
-        // Public Method
-        // ===============================
-
+// ===============================
+// Public Method
+// ===============================
+#if NETFX_CORE
         /// <summary>
         /// マシンに接続されているカメラ、マイク、スピーカーデバイスを全て取得し、リストとして保持する
         /// </summary>
@@ -338,11 +346,11 @@ namespace WebRtcPluginSample.Manager
                 return false;
             }
         }
-
-        // =============================
-        // Helper Method
-        // =============================
-
+#endif
+// =============================
+// Helper Method
+// =============================
+#if NETFX_CORE
         private Task GetCameraDeviceList()
         {
             var task = Task.Run(() =>
@@ -437,5 +445,6 @@ namespace WebRtcPluginSample.Manager
                 }
             }).ConfigureAwait(false);
         }
+#endif
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+
 #if NETFX_CORE
 using Org.WebRtc;
 #endif
@@ -9,6 +10,7 @@ namespace WebRtcPluginSample.Utilities
 {
     internal class SdpUtils
     {
+#if NETFX_CORE
         /// <summary>
         /// Forces the SDP to use the selected audio and video codecs.
         /// </summary>
@@ -90,5 +92,6 @@ namespace WebRtcPluginSample.Utilities
 
             return true;
         }
+#endif
     }
 }

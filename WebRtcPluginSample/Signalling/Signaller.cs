@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+#if NETFX_CORE
 using Windows.Data.Json;
 using Windows.Networking;
 using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
+#endif
 
 namespace WebRtcPluginSample.Signalling
 {
@@ -55,8 +57,12 @@ namespace WebRtcPluginSample.Signalling
         };
         private State _state;
 
+        #if NETFX_CORE
+        private StreamSocket _hangingGetSocket;
         // シグナリングサーバの接続情報
         private HostName _server;
+        #endif
+
         private string _port;
         // 自分のクライアント名
         private string _clientName;
@@ -65,8 +71,11 @@ namespace WebRtcPluginSample.Signalling
         // リモートユーザの一覧
         private Dictionary<int, string> _peers = new Dictionary<int, string>();
 
-        private StreamSocket _hangingGetSocket;
-
+        public Signaller()
+        {
+            _state = State.NOT_CONNECTED;
+            _myId = -1;
+        }
         /// <summary>
         /// シグナリングサーバへ接続しているかどうか
         /// </summary>
@@ -93,7 +102,10 @@ namespace WebRtcPluginSample.Signalling
                     return;
                 }
 
+                #if NETFX_CORE
                 _server = new HostName(server);
+                #endif
+
                 _port = port;
                 _clientName = client_name;
 
@@ -122,6 +134,7 @@ namespace WebRtcPluginSample.Signalling
         /// <returns></returns>
         private async Task HangingGetReadLoopAsync()
         {
+#if NETFX_CORE
             while(_state != State.NOT_CONNECTED)
             {
                 using (_hangingGetSocket = new StreamSocket())
@@ -182,6 +195,9 @@ namespace WebRtcPluginSample.Signalling
                     }
                 }
             }
+#else
+            await Task.Run(() => { });
+#endif
         }
 
         /// <summary>
@@ -191,6 +207,7 @@ namespace WebRtcPluginSample.Signalling
         /// <returns></returns>
         private async Task<bool> ControlSocketRequestAsync(string sendBuffer)
         {
+#if NETFX_CORE
             using (var socket = new StreamSocket())
             {
                 try
@@ -269,6 +286,10 @@ namespace WebRtcPluginSample.Signalling
                 }
             }
             return true;
+#else
+            await Task.Run(() => { });
+            return false;
+#endif
         }
 
         /// <summary>
@@ -278,13 +299,13 @@ namespace WebRtcPluginSample.Signalling
         public async Task<bool> SignOut()
         {
             if (_state == State.NOT_CONNECTED || _state == State.SIGNING_OUT) return true;
-
+#if NETFX_CORE
             if(_hangingGetSocket != null)
             {
                 _hangingGetSocket.Dispose();
                 _hangingGetSocket = null;
             }
-
+#endif
             _state = State.SIGNING_OUT;
 
             if(_myId != -1)
@@ -306,11 +327,13 @@ namespace WebRtcPluginSample.Signalling
         /// </summary>
         private void Close()
         {
+#if NETFX_CORE
             if(_hangingGetSocket != null)
             {
                 _hangingGetSocket.Dispose();
                 _hangingGetSocket = null;
             }
+#endif
 
             _peers.Clear();
             _state = State.NOT_CONNECTED;
@@ -341,6 +364,7 @@ namespace WebRtcPluginSample.Signalling
             return await ControlSocketRequestAsync(buffer);
         }
 
+#if NETFX_CORE
         /// <summary>
         /// 指定したPeer(リモートユーザ)にJson形式のメッセージを送信する
         /// </summary>
@@ -352,6 +376,8 @@ namespace WebRtcPluginSample.Signalling
             string message = json.Stringify();
             return await SendToPeer(peerId, message);
         }
+#endif
+
         /// <summary>
         /// レスポンスからPragmaヘッダ(自分/通話相手のPeerID)の値とヘッダの終わり位置を取得する
         /// </summary>
@@ -400,6 +426,7 @@ namespace WebRtcPluginSample.Signalling
             }
         }
 
+#if NETFX_CORE
 #pragma warning disable 1998
         /// <summary>
         /// サーバからのレスポンスを受信し、レスポンス全体とコンテンツ長さ(レスポンスボディのサイズ)のタプルを返す
@@ -484,6 +511,7 @@ namespace WebRtcPluginSample.Signalling
             return ret ? Tuple.Create(data, content_length) : null;
         }
 #pragma warning restore 1998
+#endif
 
         /// <summary>
         /// レスポンスボディをパースし、ユーザ名、PeerID、接続状態を取り出す
@@ -592,6 +620,7 @@ namespace WebRtcPluginSample.Signalling
     /// </summary>
     public static class Extentions
     {
+#if NETFX_CORE
         /// <summary>
         /// ソケットを介してデータを送信
         /// </summary>
@@ -611,6 +640,7 @@ namespace WebRtcPluginSample.Signalling
                 Debug.WriteLine("[Error] Singnaling: Couldn't write to socket : " + ex.Message);
             }
         }
+#endif
 
         public static int ParseReadingInt(this string str)
         {

@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using WebRtcPluginSample.Model;
+
+#if NETFX_CORE
 using Org.WebRtc;
+#endif
 
 namespace WebRtcPluginSample.Manager
 {
@@ -32,10 +35,11 @@ namespace WebRtcPluginSample.Manager
         // Public Method
         // ===============================
 
-        /// <summary>
-        /// IceServerのリストをRTCIceServerのリストに変換する
-        /// </summary>
-        /// <returns></returns>
+/// <summary>
+/// IceServerのリストをRTCIceServerのリストに変換する
+/// </summary>
+/// <returns></returns>
+        #if NETFX_CORE
         public Task<List<RTCIceServer>> ConvertIceServersToRTCIceServers()
         {
             var task = Task.Run(() =>
@@ -57,5 +61,6 @@ namespace WebRtcPluginSample.Manager
 
             return task;
         }
+        #endif
     }
 }
