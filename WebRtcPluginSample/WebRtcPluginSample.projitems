@@ -9,9 +9,10 @@
     <Import_RootNamespace>WebRtcPluginSample</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)Model\CodecManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\CodecManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\IceServerManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\IceServer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Model\MediaDeviceManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\MediaDeviceManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\Peer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Conductor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Signalling\Signaller.cs" />

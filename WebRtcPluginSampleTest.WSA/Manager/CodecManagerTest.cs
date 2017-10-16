@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WebRtcPluginSample.Model;
+using WebRtcPluginSample.Manager;
 using Windows.ApplicationModel.Core;
 
-namespace WebRtcPluginSampleTest.WSA.Model
+namespace WebRtcPluginSampleTest.WSA.Manager
 {
     [TestClass]
     public class CodecManagerTest

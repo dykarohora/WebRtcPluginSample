@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 
-using WebRtcPluginSample.Model;
+using WebRtcPluginSample.Manager;
 using WebRtcPluginSample.Utilities;
 
-namespace WebRtcPluginSampleTest.WSA.Model
+namespace WebRtcPluginSampleTest.WSA.Manager
 {
     [TestClass]
     public class MediaDeviceManagerTest
@@ -234,12 +234,12 @@ namespace WebRtcPluginSampleTest.WSA.Model
 
             await Task.Run(() => { mediaDeviceManager.SelectedCamera = mediaDeviceManager.Cameras.FirstOrDefault(); });
 
-            var lowestFps = await mediaDeviceManager.GetLowestFpsCapability();
+            var higestFps = await mediaDeviceManager.GetHighestFpsCapability();
 
-            var highestRes = await mediaDeviceManager.GetHighestResolution();
-            await mediaDeviceManager.TrySetResolution(highestRes);
+            var lowestRes = await mediaDeviceManager.GetLowestResolution();
+            await mediaDeviceManager.TrySetResolution(lowestRes);
 
-            var task = await mediaDeviceManager.TrySetFpsCapability(lowestFps);
+            var task = await mediaDeviceManager.TrySetFpsCapability(higestFps);
 
             Assert.IsFalse(task);
         }

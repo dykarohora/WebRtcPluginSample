@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebRtcPluginSample.Model
+namespace WebRtcPluginSample.Manager
 {
     internal class CodecManager
     {

@@ -6,6 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Linq;
+using Windows.UI.Core;
+using Windows.ApplicationModel.Core;
+using WebRtcPluginSample.Manager;
 
 #if NETFX_CORE
 using Org.WebRtc;
@@ -19,8 +22,18 @@ namespace WebRtcPluginSample.Signalling
 {
     public class Conductor
     {
+        // ===========================
+        // Private Member
+        // ===========================
+
         private static readonly object _lock = new object();
         private static Conductor _instance;
+
+        private readonly CoreDispatcher _coreDispatcher;
+
+        private MediaDeviceManager _mediaDeviceManager;
+        private CodecManager _codecManager;
+        private IceServerManager _iceServerManager;
 
         public static Conductor Instance {
             get {
@@ -38,21 +51,60 @@ namespace WebRtcPluginSample.Signalling
             }
         }
 
+        // ===========================
+        // Constructor
+        // ===========================
+        private Conductor()
+        {
+            _signaller = new Signaller();
+            _media = Media.CreateMedia();
+
+            Signaller.OnDisconnected += Signaller_OnDisconnected;
+            Signaller.OnMessageFromPeer += Signaller_OnMeesageFromPeer;
+            Signaller.OnPeerConnected += Signaller_OnPeerConnected;
+            Signaller.OnPeerHangup += Signaller_OnPeerHangup;
+            Signaller.OnPeerDisconnected += Signaller_OnPeerDisconnected;
+            Signaller.OnServerConnectionFailure += Signaller_OnServerConnectionFailed;
+            Signaller.OnSignedIn += Signaller_OnSignedIn;
+
+            _coreDispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
+
+            // _iceServers = new List<RTCIceServer>();
+
+        }
+
+        /// <summary>
+        /// 初期化
+        /// </summary>
+        public async Task Initialize()
+        {
+            WebRTC.Initialize(_coreDispatcher);
+
+            _mediaDeviceManager = new MediaDeviceManager(_media);
+            _codecManager = new CodecManager();
+            _iceServerManager = new IceServerManager();
+
+            await Task.WhenAll(
+                _mediaDeviceManager.GetAllDeviceList(),
+                _codecManager.GetAudioAndVideoCodecInfo());
+
+            var selectCameraTask = Task.Run(() => { _mediaDeviceManager.SelectedCamera = _mediaDeviceManager.Cameras.FirstOrDefault(); });
+            _mediaDeviceManager.SelectedMicrophone = _mediaDeviceManager.Microphones.FirstOrDefault();
+            _mediaDeviceManager.SelectedAudioPlayoutDevice = _mediaDeviceManager.AudioPlayoutDevices.FirstOrDefault();
+            _codecManager.SelectedAudioCodec = _codecManager.AudioCodecs.FirstOrDefault();
+            _codecManager.SelectedVideoCodec = _codecManager.VideoCodecs.FirstOrDefault();
+            await selectCameraTask;
+
+
+
+        }
+
         /// <summary>
         /// シグナリング用クライアント
         /// </summary>
         public Signaller Signaller => _signaller;
         private readonly Signaller _signaller;
 
-        /// <summary>
-        /// 映像伝送用のコーデック
-        /// </summary>
-        public CodecInfo VideoCodec { get; set; }
-
-        /// <summary>
-        /// 音声伝送用のコーデック
-        /// </summary>
-        public CodecInfo AudioCodec { get; set; }
 
         /// <summary>
         /// 使用するカメラの情報
@@ -74,16 +126,6 @@ namespace WebRtcPluginSample.Signalling
         private RTCPeerConnection _peerConnection;
 
         /// <summary>
-        /// 送信用データチャネル
-        /// </summary>
-        private RTCDataChannel _peerSendDataChannel;
-
-        /// <summary>
-        /// 受信用データチャネル
-        /// </summary>
-        private RTCDataChannel _peerReceiveDataChannel;
-
-        /// <summary>
         /// メディアデバイスを操作するためのオブジェクト
         /// </summary>
         public Media Media => _media;
@@ -102,11 +144,6 @@ namespace WebRtcPluginSample.Signalling
         private MediaStream _mediaStream;
 
         /// <summary>
-        /// Iceサーバのリスト
-        /// </summary>
-        private readonly List<RTCIceServer> _iceServers;
-
-        /// <summary>
         /// 通信相手のID
         /// </summary>
         private int _peerId = -1;
@@ -120,39 +157,6 @@ namespace WebRtcPluginSample.Signalling
         /// 自マイクの音声を送信するかどうか
         /// </summary>
         private bool AudioEnabled;
-
-        /// <summary>
-        /// ORTC
-        /// </summary>
-        private string SessionId;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public bool ETWStatsEnabled {
-            get => _etwStatsEnabled;
-            set {
-                _etwStatsEnabled = value;
-                if (_peerConnection != null)
-                    _peerConnection.EtwStatsEnabled = value;
-            }
-        }
-        private bool _etwStatsEnabled;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public bool PeerConnectionStatsEnabled {
-            get => _peerConnectionStatsEnabled;
-            set {
-                _peerConnectionStatsEnabled = value;
-                if(_peerConnection != null)
-                {
-                    _peerConnection.ConnectionHealthStatsEnabled = value;
-                }
-            }
-        }
-        public bool _peerConnectionStatsEnabled;
 
         public object MediaLock { get; set; } = new object();
 
@@ -219,11 +223,11 @@ namespace WebRtcPluginSample.Signalling
             // すでに通話を実施している
             if (_peerConnection != null)
             {
-                Debug.WriteLine("[Error] Conductor: We only support connecting to one peer at a time");
+                // TODO: Error Handling
                 return;
             }
 
-            _connectToPeerCancelationTokenSource = new System.Threading.CancellationTokenSource();
+            _connectToPeerCancelationTokenSource = new CancellationTokenSource();
             // Peerコネクションの生成、成否が返ってくる
             _connectToPeerTask = CreatePeerConnection(_connectToPeerCancelationTokenSource.Token);
             bool connectResult = await _connectToPeerTask;
@@ -232,16 +236,13 @@ namespace WebRtcPluginSample.Signalling
 
             if(connectResult)
             {
+                // SDPオファーを作成し、Peerに送信する
                 _peerId = peer.Id;
-                // SDPオファーの作成
                 var offer = await _peerConnection.CreateOffer();
                 string newSdp = offer.Sdp;
-                SdpUtils.SelectCodecs(ref newSdp, AudioCodec, VideoCodec);
+                SdpUtils.SelectCodecs(ref newSdp, _codecManager.SelectedAudioCodec, _codecManager.SelectedVideoCodec);
                 offer.Sdp = newSdp;
-                // PeerコネクションにローカルSDPをセットする
                 await _peerConnection.SetLocalDescription(offer);
-                Debug.WriteLine("Conductor: Sending offer.");
-                // SDPオファーの送信
                 SendSdp(offer);
             }
         }
@@ -259,20 +260,19 @@ namespace WebRtcPluginSample.Signalling
             // Peerコネクションの設定オブジェクトを作る
             var config = new RTCConfiguration()
             {
-                // ICE関連の設定？？
+                // ICEサーバ関連の設定
                 BundlePolicy = RTCBundlePolicy.Balanced,
                 IceTransportPolicy = RTCIceTransportPolicy.All,
-                IceServers = _iceServers
+                IceServers = await _iceServerManager.ConvertIceServersToRTCIceServers()
             };
 
-            Debug.WriteLine("Conductor: Creating peer connection.");
             _peerConnection = new RTCPeerConnection(config);
 
             if (_peerConnection == null)
                 throw new NullReferenceException("Peer connection is not creating.");
 
-            _peerConnection.EtwStatsEnabled = _etwStatsEnabled;
-            _peerConnection.ConnectionHealthStatsEnabled = _peerConnectionStatsEnabled;
+            _peerConnection.EtwStatsEnabled = false;
+            _peerConnection.ConnectionHealthStatsEnabled = false;
 
             // タスクがキャンセルされていないか
             if (cancelationToken.IsCancellationRequested) return false;
@@ -287,22 +287,7 @@ namespace WebRtcPluginSample.Signalling
             _peerConnection.OnAddStream += PeerConnection_OnAddStream;
             // リモートユーザのメディアストリームがPeerコネクションから外されたときのハンドラ
             _peerConnection.OnRemoveStream += PeerConnection_OnRemoveStream;
-            // 
-            _peerConnection.OnConnectionHealthStats += PeerConnection_OnConnectionHealthStats;
             
-            // データチャネルのセットアップ
-            _peerSendDataChannel = _peerConnection.CreateDataChannel(
-                "SendDataChannel", new RTCDataChannelInit() { Ordered = true });
-            // データチャネルがオープンされたときのイベント
-            // _peerSendDataChannel.OnOpen += PeerSendDataChannel_OnOpen;
-            // データチャネルがクローズされたときのイベント
-            // _peerSendDataChannel.OnClose += PeerDataChannel_OnClose;
-            // データチャネル上でエラーが発生したときのイベント
-            // _peerSendDataChannel.OnError += PeerSendDataChannel_OnError;
-            // リモート側でデータチャネルがオープンしたときのイベント
-            // _peerConnection.OnDataChannel += PeerConnection_OnDataChannel;
-
-            Debug.WriteLine("Conductor+ Getting user media.");
             RTCMediaStreamConstraints mediaStreamConstraints = new RTCMediaStreamConstraints
             {
                 audioEnabled = true,
@@ -323,6 +308,50 @@ namespace WebRtcPluginSample.Signalling
             if (cancelationToken.IsCancellationRequested) return false;
             return true;
         }
+
+        #region PeerConnections EventHandler
+
+        /// <summary>
+        /// 新しいICE候補が見つかった時のイベントハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnIceCandidate(RTCPeerConnectionIceEvent evt)
+        {
+            if (evt.Candidate == null) return;
+
+            double index = null != evt.Candidate.SdpMLineIndex ? (double)evt.Candidate.SdpMLineIndex : -1;
+            JsonObject json;
+
+            json = new JsonObject
+            {
+                {kCandidateSdpMidName, JsonValue.CreateStringValue(evt.Candidate.SdpMid) },
+                {kCandidateSdpMlineIndexName, JsonValue.CreateNumberValue(index) },
+                {kCandidateSdpName, JsonValue.CreateStringValue(evt.Candidate.Candidate) }
+            };
+
+            Debug.WriteLine("Conductor: Sending ice candidate.\n" + json.Stringify());
+            SendMessage(json);
+        }
+
+        /// <summary>
+        /// リモートユーザのメディアストリームがPeerコネクションに追加されたときのハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnAddStream(MediaStreamEvent evt)
+        {
+            OnAddRemoteStream?.Invoke(evt);
+        }
+
+        /// <summary>
+        /// リモートユーザのメディアストリームがPeerコネクションから外されたときのハンドラ
+        /// </summary>
+        /// <param name="evt"></param>
+        private void PeerConnection_OnRemoveStream(MediaStreamEvent evt)
+        {
+            OnRemoveRemoteStream?.Invoke(evt);
+        }
+
+        #endregion
 
         /// <summary>
         /// SDPを送信する
@@ -407,71 +436,13 @@ namespace WebRtcPluginSample.Signalling
             await _signaller.SendToPeer(_peerId, "BYE");
         }
 
-        /// <summary>
-        /// 新しいICE候補が見つかった時のイベントハンドラ
-        /// </summary>
-        /// <param name="evt"></param>
-        private void PeerConnection_OnIceCandidate(RTCPeerConnectionIceEvent evt)
-        {
-            if (evt.Candidate == null) return;
-
-            double index = null != evt.Candidate.SdpMLineIndex ? (double)evt.Candidate.SdpMLineIndex : -1;
-            JsonObject json;
-
-            json = new JsonObject
-            {
-                {kCandidateSdpMidName, JsonValue.CreateStringValue(evt.Candidate.SdpMid) },
-                {kCandidateSdpMlineIndexName, JsonValue.CreateNumberValue(index) },
-                {kCandidateSdpName, JsonValue.CreateStringValue(evt.Candidate.Candidate) }
-            };
-
-            Debug.WriteLine("Conductor: Sending ice candidate.\n" + json.Stringify());
-            SendMessage(json);
-        }
-
-        /// <summary>
-        /// リモートユーザのメディアストリームがPeerコネクションに追加されたときのハンドラ
-        /// </summary>
-        /// <param name="evt"></param>
-        private void PeerConnection_OnAddStream(MediaStreamEvent evt)
-        {
-            OnAddRemoteStream?.Invoke(evt);
-        }
-
-        /// <summary>
-        /// リモートユーザのメディアストリームがPeerコネクションから外されたときのハンドラ
-        /// </summary>
-        /// <param name="evt"></param>
-        private void PeerConnection_OnRemoveStream(MediaStreamEvent evt)
-        {
-            OnRemoveRemoteStream?.Invoke(evt);
-        }
-
-        private void PeerConnection_OnConnectionHealthStats(RTCPeerConnectionHealthStats stats)
-        {
-            OnConnectionHealthStats?.Invoke(stats);
-        }
-
 
         // ===========================
-        // Constructor
+        // EventHandler
         // ===========================
-        private Conductor()
-        {
-            _signaller = new Signaller();
-            _media = Media.CreateMedia();
 
-            Signaller.OnDisconnected += Signaller_OnDisconnected;
-            Signaller.OnMessageFromPeer += Signaller_OnMeesageFromPeer;
-            Signaller.OnPeerConnected += Signaller_OnPeerConnected;
-            Signaller.OnPeerHangup += Signaller_OnPeerHangup;
-            Signaller.OnPeerDisconnected += Signaller_OnPeerDisconnected;
-            Signaller.OnServerConnectionFailure += Signaller_OnServerConnectionFailed;
-            Signaller.OnSignedIn += Signaller_OnSignedIn;
 
-            _iceServers = new List<RTCIceServer>();
-        }
-
+        #region Signalling client's EventHandler
         /// <summary>
         /// リモートユーザからメッセージを受信したときのハンドラ
         /// SDPオファー/アンサーの処理、ICE受信時の処理を行う
@@ -659,6 +630,7 @@ namespace WebRtcPluginSample.Signalling
             Debug.WriteLine("[Error]: Connection to server failed!");
         }
 
+        #endregion
 
         /// <summary>
         /// WebRTCライブラリにカメラデバイスが使用する解像度とFPSを設定する

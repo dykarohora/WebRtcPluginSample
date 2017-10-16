@@ -7,7 +7,7 @@ using WebRtcPluginSample.Signalling;
 using System.Linq;
 using WebRtcPluginSample.Utilities;
 
-namespace WebRtcPluginSample.Model
+namespace WebRtcPluginSample.Manager
 {
     internal class MediaDeviceManager
     {
