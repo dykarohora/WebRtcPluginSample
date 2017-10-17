@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Linq;
+using WebRtcPluginSample.Model;
+
 #if NETFX_CORE
 using Windows.Data.Json;
 using Windows.Networking;
@@ -23,28 +26,9 @@ namespace WebRtcPluginSample.Signalling
 
     internal class Signaller
     {
-        /// <summary>
-        /// シグナリングサーバへの接続(ログイン)が完了したときのイベント
-        /// </summary>
-        public event SignedInDelegate OnSignedIn;
-        /// <summary>
-        /// シグナリングサーバから切断(ログアウト)が完了したときのイベント
-        /// </summary>
-        public event DisconnectedDelegate OnDisconnected;
-        /// <summary>
-        /// リモートユーザがシグナリングサーバに接続してきたときのイベント
-        /// </summary>
-        public event PeerConnectedDelegate OnPeerConnected;
-        /// <summary>
-        /// リモートユーザがシグナリングサーバからログアウトしたときのイベント 
-        /// </summary>
-        public event PeerDisconnectedDelegate OnPeerDisconnected;
-        public event PeerHangupDelegate OnPeerHangup;
-        public event MessageFromPeerDelegate OnMessageFromPeer;
-        /// <summary>
-        /// シグナリングサーバへの接続(ログイン)が失敗したときのイベント
-        /// </summary>
-        public event ServerConnectionFailureDelegate OnServerConnectionFailure; // シグナリングサーバへの接続が失敗したときのイベント
+        // ===============================
+        // Private Member
+        // ===============================
 
         public enum State
         {
@@ -55,13 +39,16 @@ namespace WebRtcPluginSample.Signalling
             SIGNING_OUT_WAITING,
             SIGNING_OUT,
         };
+        /// <summary>
+        /// シグナリングサーバへのせつぞくステータス
+        /// </summary>
         private State _state;
 
-        #if NETFX_CORE
+#if NETFX_CORE
         private StreamSocket _hangingGetSocket;
         // シグナリングサーバの接続情報
         private HostName _server;
-        #endif
+#endif
 
         private string _port;
         // 自分のクライアント名
@@ -69,13 +56,13 @@ namespace WebRtcPluginSample.Signalling
         // 自分のPeerID
         private int _myId;
         // リモートユーザの一覧
-        private Dictionary<int, string> _peers = new Dictionary<int, string>();
+        // private Dictionary<int, string> _peers = new Dictionary<int, string>();
+        private List<Peer> _peers = new List<Peer>();
 
-        public Signaller()
-        {
-            _state = State.NOT_CONNECTED;
-            _myId = -1;
-        }
+        // ===============================
+        // Properties
+        // ===============================
+
         /// <summary>
         /// シグナリングサーバへ接続しているかどうか
         /// </summary>
@@ -86,12 +73,70 @@ namespace WebRtcPluginSample.Signalling
         }
 
         /// <summary>
+        /// リモートユーザのリスト
+        /// </summary>
+        public List<Peer> Peers { get => _peers; }
+
+        // ===============================
+        // Constructor
+        // ===============================
+
+        public Signaller()
+        {
+            _state = State.NOT_CONNECTED;
+            _myId = -1;
+        }
+
+        // ===============================
+        // Event
+        // ===============================
+
+        /// <summary>
+        /// シグナリングサーバへの接続(ログイン)が完了したときのイベント
+        /// </summary>
+        public event SignedInDelegate OnSignedIn;
+
+        /// <summary>
+        /// シグナリングサーバから切断(ログアウト)が完了したときのイベント
+        /// </summary>
+        public event DisconnectedDelegate OnDisconnected;
+
+        /// <summary>
+        /// リモートユーザがシグナリングサーバに接続してきたときのイベント
+        /// </summary>
+        public event PeerConnectedDelegate OnPeerConnected;
+
+        /// <summary>
+        /// リモートユーザがシグナリングサーバからログアウトしたときのイベント 
+        /// </summary>
+        public event PeerDisconnectedDelegate OnPeerDisconnected;
+
+        /// <summary>
+        /// 通話から通話終了シグナルを受け取ったときのイベント
+        /// </summary>
+        public event PeerHangupDelegate OnPeerHangup;
+
+        /// <summary>
+        /// 通話相手からメッセージを受信したときのイベント
+        /// </summary>
+        public event MessageFromPeerDelegate OnMessageFromPeer;
+
+        /// <summary>
+        /// シグナリングサーバへの接続(ログイン)が失敗したときのイベント
+        /// </summary>
+        public event ServerConnectionFailureDelegate OnServerConnectionFailure; // シグナリングサーバへの接続が失敗したときのイベント
+
+        // ===============================
+        // Public Method
+        // ===============================
+
+        /// <summary>
         /// シグナリングサーバへの接続
         /// </summary>
         /// <param name="server"></param>
         /// <param name="port"></param>
         /// <param name="client_name"></param>
-        public async void Connect(string server, string port, string client_name)
+        public async Task Connect(string server, string port, string client_name)
         {
             try
             {
@@ -111,7 +156,7 @@ namespace WebRtcPluginSample.Signalling
 
                 _state = State.SIGNING_IN;      // ステートをサーバへの接続試行中に変更
                 // ログインリクエストの送信、そのまま後続の処理もやってしまう
-                await ControlSocketRequestAsync(string.Format("GET /sign_in?{0} HTTP/1.0\r\n\r\n", client_name));
+                await ControlSocketRequestAsync(string.Format("GET /sign_in?{0} HTTP/1.0\r\n\r\n", client_name)).ConfigureAwait(false);
                 // ログイン成功
                 if(_state == State.CONNECTED)
                 {
@@ -127,6 +172,79 @@ namespace WebRtcPluginSample.Signalling
                 Debug.WriteLine("[Error] Signaling: Failed to connect to server: " + ex.Message);
             }
         }
+
+        /// <summary>
+        /// サインアウト処理
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> SignOut()
+        {
+            if (_state == State.NOT_CONNECTED || _state == State.SIGNING_OUT) return true;
+#if NETFX_CORE
+            if(_hangingGetSocket != null)
+            {
+                _hangingGetSocket.Dispose();
+                _hangingGetSocket = null;
+            }
+#endif
+            _state = State.SIGNING_OUT;
+
+            if(_myId != -1)
+            {
+                // サインアウトリクエストを送る
+                await ControlSocketRequestAsync(string.Format("GET /sign_out?peer_id={0} HTTP/1.0\r\n\r\n", _myId)).ConfigureAwait(false);
+            } else
+            {
+                return true;
+            }
+
+            _myId = -1;
+            _state = State.NOT_CONNECTED;
+            return true;
+        }
+        
+        /// <summary>
+        /// 指定したPeer(リモートユーザ)にメッセージを送信する
+        /// </summary>
+        /// <param name="peerId"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public async Task<bool> SendToPeer(int peerId, string message)
+        {
+            // シグナリングサーバに接続していない場合はfalse
+            if (_state != State.CONNECTED) return false;
+            Debug.Assert(IsConnceted());
+            // 引数のpeerIDが不正でもfalse
+            if (!IsConnceted() || peerId == -1) return false;
+
+            string buffer = string.Format(
+                "POST /message?peer_id={0}&to={1} HTTP/1.0\r\n" +
+                "Content-Length: {2}\r\n" +
+                "Content-Type: text/plain\r\n" +
+                "\r\n" +
+                "{3}",
+                _myId, peerId, message.Length, message);
+
+            return await ControlSocketRequestAsync(buffer);
+        }
+
+#if NETFX_CORE
+        /// <summary>
+        /// 指定したPeer(リモートユーザ)にJson形式のメッセージを送信する
+        /// </summary>
+        /// <param name="peerId"></param>
+        /// <param name="json"></param>
+        /// <returns></returns>
+        public async Task<bool> SendToPeer(int peerId, IJsonValue json)
+        {
+            string message = json.Stringify();
+            return await SendToPeer(peerId, message);
+        }
+#endif
+
+        // ===============================
+        // Helper Method
+        // ===============================
 
         /// <summary>
         /// シグナリングサーバ接続後のポーリングリクエスト
@@ -168,11 +286,14 @@ namespace WebRtcPluginSample.Signalling
                             {
                                 if(connected)
                                 {
-                                    _peers[id] = name;
+                                    // _peers[id] = name;
+                                    _peers.Add(new Peer { Id = id, Name = name });
                                     OnPeerConnected?.Invoke(id, name);
                                 } else
                                 {
-                                    _peers.Remove(id);
+                                    // _peers.Remove(id);
+                                    var peerToRemove = _peers.Find(peer => peer.Id == id);
+                                    _peers.Remove(peerToRemove);
                                     OnPeerDisconnected?.Invoke(id);
                                 }
                             }
@@ -262,7 +383,8 @@ namespace WebRtcPluginSample.Signalling
                             bool connected = false;
                             if(ParseEntry(buffer.Substring(pos, eol-pos), ref name, ref id, ref connected) && id != _myId)
                             {
-                                _peers[id] = name;
+                                // _peers[id] = name;
+                                _peers.Add(new Peer { Id = id, Name = name });
                                 OnPeerConnected(id, name);
                             }
                             pos = eol + 1;
@@ -293,37 +415,7 @@ namespace WebRtcPluginSample.Signalling
         }
 
         /// <summary>
-        /// サインアウト処理
-        /// </summary>
-        /// <returns></returns>
-        public async Task<bool> SignOut()
-        {
-            if (_state == State.NOT_CONNECTED || _state == State.SIGNING_OUT) return true;
-#if NETFX_CORE
-            if(_hangingGetSocket != null)
-            {
-                _hangingGetSocket.Dispose();
-                _hangingGetSocket = null;
-            }
-#endif
-            _state = State.SIGNING_OUT;
-
-            if(_myId != -1)
-            {
-                // サインアウトリクエストを送る
-                await ControlSocketRequestAsync(string.Format("GET /sign_out?peer_id={0} HTTP/1.0\r\n\r\n", _myId));
-            } else
-            {
-                return true;
-            }
-
-            _myId = -1;
-            _state = State.NOT_CONNECTED;
-            return true;
-        }
-        
-        /// <summary>
-        /// シグナリングサーバから切断、つかわなくない？？
+        /// シグナリングサーバから切断
         /// </summary>
         private void Close()
         {
@@ -335,48 +427,10 @@ namespace WebRtcPluginSample.Signalling
             }
 #endif
 
+            // _peers.Clear();
             _peers.Clear();
             _state = State.NOT_CONNECTED;
         }
-
-        /// <summary>
-        /// 指定したPeer(リモートユーザ)にメッセージを送信する
-        /// </summary>
-        /// <param name="peerId"></param>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        public async Task<bool> SendToPeer(int peerId, string message)
-        {
-            // シグナリングサーバに接続していない場合はfalse
-            if (_state != State.CONNECTED) return false;
-            Debug.Assert(IsConnceted());
-            // 引数のpeerIDが不正でもfalse
-            if (!IsConnceted() || peerId == -1) return false;
-
-            string buffer = string.Format(
-                "POST /message?peer_id={0}&to={1} HTTP/1.0\r\n" +
-                "Content-Length: {2}\r\n" +
-                "Content-Type: text/plain\r\n" +
-                "\r\n" +
-                "{3}",
-                _myId, peerId, message.Length, message);
-
-            return await ControlSocketRequestAsync(buffer);
-        }
-
-#if NETFX_CORE
-        /// <summary>
-        /// 指定したPeer(リモートユーザ)にJson形式のメッセージを送信する
-        /// </summary>
-        /// <param name="peerId"></param>
-        /// <param name="json"></param>
-        /// <returns></returns>
-        public async Task<bool> SendToPeer(int peerId, IJsonValue json)
-        {
-            string message = json.Stringify();
-            return await SendToPeer(peerId, message);
-        }
-#endif
 
         /// <summary>
         /// レスポンスからPragmaヘッダ(自分/通話相手のPeerID)の値とヘッダの終わり位置を取得する
@@ -615,9 +669,10 @@ namespace WebRtcPluginSample.Signalling
         }
     }
 
-    /// <summary>
-    /// 拡張メソッド
-    /// </summary>
+    // ===============================
+    // Extention
+    // ===============================
+
     public static class Extentions
     {
 #if NETFX_CORE

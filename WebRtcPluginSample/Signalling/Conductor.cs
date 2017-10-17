@@ -54,7 +54,6 @@ namespace WebRtcPluginSample.Signalling
         private CodecManager _codecManager;
         private IceServerManager _iceServerManager;
 
-
         /// <summary>
         /// 通信相手のID
         /// </summary>
@@ -162,9 +161,7 @@ namespace WebRtcPluginSample.Signalling
         /// <summary>
         /// シグナリングサーバに接続しているリモートユーザのリスト
         /// </summary>
-        public List<Peer> Peers {
-            get;
-        } = new List<Peer>();
+        // public List<Peer> Peers { get;} = new List<Peer>();
 
         internal MediaDeviceManager MediaDeviceManager { get => _mediaDeviceManager; }
         internal CodecManager CodecManager { get => _codecManager; }
@@ -628,7 +625,7 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="name"></param>
         private void Signaller_OnPeerConnected(int id, string name)
         {
-            Peers.Add(new Peer { Id = id, Name = name });
+            // Peers.Add(new Peer { Id = id, Name = name });
         }
 
         /// <summary>
@@ -637,7 +634,7 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="peerId"></param>
         private void Signaller_OnPeerDisconnected(int peerId)
         {
-            var peerToRemove = Peers?.FirstOrDefault(p => p.Id == peerId);
+            // var peerToRemove = Peers?.FirstOrDefault(p => p.Id == peerId);
             if (peerId != _peerId && peerId != 0) return;
             ClosePeerConnection();
         }
