@@ -57,7 +57,8 @@ namespace WebRtcPluginSample.Signalling
         /// <summary>
         /// 通信相手のID
         /// </summary>
-        private int _peerId = -1;
+        // private int _selectedPeerId = -1;
+        private Peer _selectedPeer;
 
         // private Peer Peer;
 
@@ -247,9 +248,25 @@ namespace WebRtcPluginSample.Signalling
             var selectCameraTask = Task.Run(() => { _mediaDeviceManager.SelectedCamera = _mediaDeviceManager.Cameras.FirstOrDefault(); });
             _mediaDeviceManager.SelectedMicrophone = _mediaDeviceManager.Microphones.FirstOrDefault();
             _mediaDeviceManager.SelectedAudioPlayoutDevice = _mediaDeviceManager.AudioPlayoutDevices.FirstOrDefault();
-            _codecManager.SelectedAudioCodec = _codecManager.AudioCodecs.FirstOrDefault();
-            _codecManager.SelectedVideoCodec = _codecManager.VideoCodecs.FirstOrDefault();
-            await selectCameraTask;
+
+            // 解像度とFPSはハードコード(調整するならここ)
+            var resolution = new Resolution(640, 480);
+            var setResolutionResult = await _mediaDeviceManager.TrySetResolution(resolution);
+            // Holoのカメラが640x480をサポートしていないので、最低解像度を指定する
+            if(!setResolutionResult)
+            {
+                var res = await _mediaDeviceManager.GetLowestResolution();
+                await _mediaDeviceManager.TrySetResolution(res);
+            }
+            // FPSは最大
+            var highestFPS = await _mediaDeviceManager.GetHighestFpsCapability();
+            await _mediaDeviceManager.TrySetFpsCapability(highestFPS);
+
+            // コーデックもハードコード
+            var setAudioCodecTask = _codecManager.TrySetAudioCodec("OPUS", 48000);
+            var setVideoCodecTask = _codecManager.TrySetVideoCodec("h264");
+
+            await Task.WhenAll(setAudioCodecTask, setVideoCodecTask, selectCameraTask);
 #endif
         }
 
@@ -259,10 +276,22 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="server"></param>
         /// <param name="port"></param>
         /// <param name="peerName"></param>
-        public void StartLogin(string server, string port, string peerName = "")
+        public async Task StartLogin(string server, string port, string peerName = "")
         {
-            if (_signaller.IsConnceted()) return;
-            _signaller.Connect(server, port, peerName == string.Empty ? GetLocalPeerName() : peerName);
+            if (_signaller.IsConnceted) return;
+            await _signaller.Connect(server, port, peerName == string.Empty ? GetLocalPeerName() : peerName);
+        }
+
+        /// <summary>
+        /// シグナリングサーバからログアウト
+        /// </summary>
+        /// <returns></returns>
+        public async Task DisconnectFromServer()
+        {
+            if(_signaller.IsConnceted)
+            {
+                await _signaller.SignOut();
+            }
         }
 
         /// <summary>
@@ -270,10 +299,10 @@ namespace WebRtcPluginSample.Signalling
         /// </summary>
         /// <param name="peer"></param>
         /// <returns></returns>
-        public async Task ConnectToPeer(Peer peer)
+        public async Task ConnectToPeer(int peerId)
         {
-            Debug.Assert(peer != null);
-            Debug.Assert(_peerId == -1);
+            Debug.Assert(peerId != -1);
+            Debug.Assert(_selectedPeer == null);
 #if NETFX_CORE
             // すでに通話を実施している
             if (_peerConnection != null)
@@ -282,6 +311,13 @@ namespace WebRtcPluginSample.Signalling
                 return;
             }
 
+            var peer = Signaller.Peers.Find(p => p.Id == peerId);
+            if(peer.Id != peerId)
+            {
+                // TODO: Error Handling
+                return;
+            }
+            
             _connectToPeerCancelationTokenSource = new CancellationTokenSource();
             // Peerコネクションの生成、成否が返ってくる
             _connectToPeerTask = CreatePeerConnection(_connectToPeerCancelationTokenSource.Token);
@@ -292,7 +328,8 @@ namespace WebRtcPluginSample.Signalling
             if(connectResult)
             {
                 // SDPオファーを作成し、Peerに送信する
-                _peerId = peer.Id;
+                // _selectedPeerId = peer.Id;
+                _selectedPeer = peer;
                 var offer = await _peerConnection.CreateOffer();
                 string newSdp = offer.Sdp;
                 SdpUtils.SelectCodecs(ref newSdp, _codecManager.SelectedAudioCodec, _codecManager.SelectedVideoCodec);
@@ -309,13 +346,15 @@ namespace WebRtcPluginSample.Signalling
         /// <returns></returns>
         public async Task DisconnectFromPeer()
         {
-            await _signaller.SendToPeer(_peerId, "BYE");
+            // await _signaller.SendToPeer(_selectedPeerId, "BYE");
+            await _signaller.SendToPeer(_selectedPeer.Id, "BYE");
             ClosePeerConnection();
         }
 
         // ===========================
         // Helper Method
         // ===========================
+
         /// <summary>
         /// クライアント名を取得
         /// </summary>
@@ -383,11 +422,12 @@ namespace WebRtcPluginSample.Signalling
 
             // ローカルメディアストリームの作成
             _mediaStream = await _media.GetUserMedia(mediaStreamConstraints);
-            IsEnableVideo = true;
+            // オーディオとビデオを有効化
             IsEnabledAudio = true;
+            IsEnableVideo = true;
             // タスクがキャンセルされていないか
             if (cancelationToken.IsCancellationRequested) return false;
-            // Peerコネクションにローカルストリーム
+            // Peerコネクションにローカルストリームをセット
             _peerConnection.AddStream(_mediaStream);
             // イベント発火
             // OnAddLocalStream?.Invoke(new MediaStreamEvent() { Stream = _mediaStream });
@@ -416,7 +456,9 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="json"></param>
         private void SendMessage(IJsonValue json)
         {
-            var task = _signaller.SendToPeer(_peerId, json);
+            // TODO: 非同期でもいいんじゃね？？
+            // var task = _signaller.SendToPeer(_selectedPeerId, json);
+            var task = _signaller.SendToPeer(_selectedPeer.Id, json);
         }
 #endif
 
@@ -430,7 +472,8 @@ namespace WebRtcPluginSample.Signalling
             {
                 if(_peerConnection != null)
                 {
-                    _peerId = -1;
+                    // _selectedPeerId = -1;
+                    _selectedPeer = null;
                     if(_mediaStream != null)
                     {
                         foreach(var track in _mediaStream.GetTracks())
@@ -474,11 +517,12 @@ namespace WebRtcPluginSample.Signalling
         {
             Task.Run(async () =>
             {
-                Debug.Assert(_peerId == peerId || _peerId == -1);
+                // Debug.Assert(_selectedPeerId == peerId || _selectedPeerId == -1);
+                Debug.Assert(_selectedPeer.Id == peerId || _selectedPeer == null);
                 Debug.Assert(message.Length > 0);
 
                 // 通話相手からのメッセージではない、かつPeerコネクション生成済みなら何もしない
-                if (_peerId != peerId && _peerId != -1)
+                if (_selectedPeer.Id != peerId && _selectedPeer != null)
                 {
                     // TODO: Error Handling
                     return;
@@ -501,11 +545,14 @@ namespace WebRtcPluginSample.Signalling
                     {
                         if (type == "offer" || type == "answer" || type == "json")
                         {
-                            Debug.Assert(_peerId == -1);
-                            _peerId = peerId;
-
-                            // IEnumerable<Peer> enumerablePeer = Peers.Where(x => x.Id == peerId);
-                            // Peer = enumerablePeer.First();
+                            Debug.Assert(_selectedPeer == null);
+                            var peer = Signaller.Peers.Find(p => p.Id == peerId);
+                            if(peer.Id == peerId)
+                            {
+                                // TODO: Error Handling
+                                return;
+                            }
+                            _selectedPeer = peer;
 
                             _connectToPeerCancelationTokenSource = new CancellationTokenSource();
                             _connectToPeerTask = CreatePeerConnection(_connectToPeerCancelationTokenSource.Token);
@@ -518,7 +565,7 @@ namespace WebRtcPluginSample.Signalling
                                 await Signaller.SignOut();
                                 return;
                             }
-                            else if (_peerId != peerId)
+                            else if (_selectedPeer.Id != peerId)
                             {
                                 return;
                             }
@@ -604,7 +651,7 @@ namespace WebRtcPluginSample.Signalling
         /// <param name="peerId"></param>
         private void Signaller_OnPeerHangup(int peerId)
         {
-            if (peerId != _peerId) return;
+            if (peerId != _selectedPeer.Id) return;
 
             Debug.WriteLine("Conductor: Our peer hung up.");
             ClosePeerConnection();
@@ -635,7 +682,7 @@ namespace WebRtcPluginSample.Signalling
         private void Signaller_OnPeerDisconnected(int peerId)
         {
             // var peerToRemove = Peers?.FirstOrDefault(p => p.Id == peerId);
-            if (peerId != _peerId && peerId != 0) return;
+            if (peerId != _selectedPeer.Id && peerId != 0) return;
             ClosePeerConnection();
         }
 

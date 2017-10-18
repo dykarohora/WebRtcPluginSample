@@ -67,9 +67,9 @@ namespace WebRtcPluginSample.Signalling
         /// シグナリングサーバへ接続しているかどうか
         /// </summary>
         /// <returns></returns>
-        public bool IsConnceted()
+        public bool IsConnceted
         {
-            return _myId != -1;
+            get => _myId != -1;
         }
 
         /// <summary>
@@ -213,9 +213,9 @@ namespace WebRtcPluginSample.Signalling
         {
             // シグナリングサーバに接続していない場合はfalse
             if (_state != State.CONNECTED) return false;
-            Debug.Assert(IsConnceted());
+            Debug.Assert(IsConnceted);
             // 引数のpeerIDが不正でもfalse
-            if (!IsConnceted() || peerId == -1) return false;
+            if (!IsConnceted || peerId == -1) return false;
 
             string buffer = string.Format(
                 "POST /message?peer_id={0}&to={1} HTTP/1.0\r\n" +
@@ -385,7 +385,7 @@ namespace WebRtcPluginSample.Signalling
                             {
                                 // _peers[id] = name;
                                 _peers.Add(new Peer { Id = id, Name = name });
-                                OnPeerConnected(id, name);
+                                OnPeerConnected?.Invoke(id, name);
                             }
                             pos = eol + 1;
                         }
@@ -455,7 +455,7 @@ namespace WebRtcPluginSample.Signalling
                     {
                         Debug.WriteLine("Peer most likely gone. Closing peer connection.");
                         // ???
-                        OnPeerDisconnected(0);
+                        OnPeerDisconnected.Invoke(0);
                         return false;
                     }
                     Close();

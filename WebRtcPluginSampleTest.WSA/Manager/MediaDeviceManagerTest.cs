@@ -18,8 +18,6 @@ namespace WebRtcPluginSampleTest.WSA.Manager
             set { _testContextInstance = value; }
         }
 
-        public static Media Media { get; set; }
-
         [ClassInitialize]
         public static void ClassInitialize(TestContext test)
         {

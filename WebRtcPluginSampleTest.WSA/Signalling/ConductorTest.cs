@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebRtcPluginSample.Signalling;
+using WebRtcPluginSample.Utilities;
 
 namespace WebRtcPluginSampleTest.WSA.Signalling
 {
@@ -18,22 +19,51 @@ namespace WebRtcPluginSampleTest.WSA.Signalling
         }
 
         [TestMethod]
-        public async Task ConductorInitializeTest()
+        public async Task InitializeTest()
         {
             var conductor = Conductor.Instance;
             await conductor.Initialize();
 
-            Assert.IsNotNull(conductor.MediaDeviceManager);
-            Assert.IsNotNull(conductor.CodecManager);
-            Assert.IsNotNull(conductor.IceServerManager);
+            var mediaDeviceManager = conductor.MediaDeviceManager;
 
-            TestContext.WriteLine("Camera: " + conductor.MediaDeviceManager.Cameras.Count);
-            TestContext.WriteLine("Microphoe: " + conductor.MediaDeviceManager.Microphones.Count);
-            TestContext.WriteLine("Speeker: " + conductor.MediaDeviceManager.AudioPlayoutDevices.Count);
+            Assert.IsNotNull(mediaDeviceManager.SelectedCamera);
+            Assert.IsNotNull(mediaDeviceManager.SelectedResolution);
+            Assert.IsNotNull(mediaDeviceManager.SelectedFps);
+            Assert.IsNotNull(mediaDeviceManager.SelectedMicrophone);
+            Assert.IsNotNull(mediaDeviceManager.SelectedAudioPlayoutDevice);
 
-            conductor.StartLogin("localhost", "8888");
-            await Task.Delay(10000);
-            Assert.IsTrue(conductor.Signaller.IsConnceted());
+            var selectedResolution = mediaDeviceManager.SelectedResolution;
+            Assert.AreEqual(new Resolution(640, 480), selectedResolution);
+
+            var selectedFPS = mediaDeviceManager.SelectedFps;
+            var highestFPS = await mediaDeviceManager.GetHighestFpsCapability();
+            Assert.AreEqual(selectedFPS, highestFPS);
+
+            var codecManager = conductor.CodecManager;
+
+            var audioCodec = codecManager.SelectedAudioCodec;
+            var videoCodec = codecManager.SelectedVideoCodec;
+
+            Assert.AreEqual(audioCodec.Name, "opus");
+            Assert.AreEqual(videoCodec.Name, "H264");
+        }
+
+        [TestMethod]
+        public async Task LoginLogOutTest()
+        {
+            var conductor = Conductor.Instance;
+            await conductor.Initialize();
+
+            await conductor.StartLogin("192.168.0.12", "8888");
+
+            var signaller = conductor.Signaller;
+
+            Assert.IsTrue(signaller.IsConnceted);
+
+            await conductor.DisconnectFromServer();
+
+            Assert.IsFalse(signaller.IsConnceted);
+
         }
     }
 }

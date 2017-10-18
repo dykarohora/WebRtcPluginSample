@@ -1,6 +1,6 @@
 ﻿namespace WebRtcPluginSample.Model
 {
-    public class Peer
+    internal class Peer
     {
         public int Id { get; set; }
         public string Name { get; set; }
