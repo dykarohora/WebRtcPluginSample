@@ -45,4 +45,7 @@
   </ItemGroup>
   <Import Project="..\WebRtcPluginSample\WebRtcPluginSample.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /Y "$(TargetPath)" "$(SolutionDir)\WebRtcSampleUnityApp\Assets\Plugins\"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

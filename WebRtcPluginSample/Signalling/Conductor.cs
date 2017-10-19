@@ -162,7 +162,16 @@ namespace WebRtcPluginSample.Signalling
         /// <summary>
         /// シグナリングサーバに接続しているリモートユーザのリスト
         /// </summary>
-        // public List<Peer> Peers { get;} = new List<Peer>();
+        public List<int> PeersIdList {
+            get {
+                var idList = new List<int>();
+                foreach(var peer in Signaller.Peers)
+                {
+                    idList.Add(peer.Id);
+                }
+                return idList;
+            }
+        }
 
         internal MediaDeviceManager MediaDeviceManager { get => _mediaDeviceManager; }
         internal CodecManager CodecManager { get => _codecManager; }
@@ -472,6 +481,13 @@ namespace WebRtcPluginSample.Signalling
             {
                 if(_peerConnection != null)
                 {
+                    _peerVideoTrack = null;
+
+                    OnPeerConnectionClosed?.Invoke();
+                    _peerConnection.Close();
+                    _peerConnection = null;
+
+                    OnReadyToConnect?.Invoke();
                     // _selectedPeerId = -1;
                     _selectedPeer = null;
                     if(_mediaStream != null)
@@ -489,13 +505,6 @@ namespace WebRtcPluginSample.Signalling
                         }
                     }
                     _mediaStream = null;
-                    _peerVideoTrack = null;
-
-                    OnPeerConnectionClosed?.Invoke();
-                    _peerConnection.Close();
-                    _peerConnection = null;
-
-                    OnReadyToConnect?.Invoke();
                 }
             }
 #endif
@@ -545,13 +554,7 @@ namespace WebRtcPluginSample.Signalling
                     {
                         if (type == "offer" || type == "answer" || type == "json")
                         {
-                            Debug.Assert(_selectedPeer == null);
                             var peer = Signaller.Peers.Find(p => p.Id == peerId);
-                            if(peer.Id == peerId)
-                            {
-                                // TODO: Error Handling
-                                return;
-                            }
                             _selectedPeer = peer;
 
                             _connectToPeerCancelationTokenSource = new CancellationTokenSource();
