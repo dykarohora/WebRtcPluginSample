@@ -23,3 +23,11 @@ WebRTCを使ってHoloLens - UWPアプリ、Immersive HeadSet - UWPアプリで�
 
 # 今後
 * HoloLens - Immersive Headset間でコネクションを張れるようにする
+
+# PeerCC
+以下をクローン&ビルドしてください  
+[https://github.com/webrtc-uwp/PeerCC-Sample](https://github.com/webrtc-uwp/PeerCC-Sample)
+
+# UnityWithWebRTC
+以下のリポジトリを参考にしています  
+[https://github.com/ritchielozada/UnityWithWebRTC](https://github.com/ritchielozada/UnityWithWebRTC)
