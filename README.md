@@ -7,7 +7,7 @@
 * ウェブカメラ (Immersive Headsetで動かす場合)
 
 # 概要
-WebRTCを使ってHoloLens - UWPアプリ、Immersive HeadSet - UWPアプリでビデオチャットを行うサンプルです。
+WebRTCを使ってHoloLens - UWPアプリ間、Immersive HeadSet - UWPアプリ間、HoloLens - Immersive HeadSet間でビデオチャットを行うサンプルです。
 
 # Unityアプリの設定
 1. WebRtcSampleUnityAppを開きます
@@ -22,7 +22,9 @@ WebRTCを使ってHoloLens - UWPアプリ、Immersive HeadSet - UWPアプリで�
 5. peerconnection_server.exeのコンソール上で、接続ユーザ数が「2」であることを確認し、Unityアプリ上で「Connect Peer」をクリックします
 
 # 今後
-* HoloLens - Immersive Headset間でコネクションを張れるようにする
+* データチャネルを使ったサンプルを作る
+* シグナリングサーバの独自実装
+* MixedRealityCapture対応
 
 # PeerCC
 以下をクローン&ビルドしてください  

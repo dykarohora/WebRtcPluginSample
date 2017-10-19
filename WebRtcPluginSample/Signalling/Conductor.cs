@@ -531,7 +531,7 @@ namespace WebRtcPluginSample.Signalling
                 Debug.Assert(message.Length > 0);
 
                 // 通話相手からのメッセージではない、かつPeerコネクション生成済みなら何もしない
-                if (_selectedPeer.Id != peerId && _selectedPeer != null)
+                if (_selectedPeer != null && _selectedPeer.Id != peerId)
                 {
                     // TODO: Error Handling
                     return;
