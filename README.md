@@ -25,12 +25,12 @@ WebRTCを使ってHoloLens - UWPアプリ間、Immersive HeadSet - UWPアプリ�
 
 | ディレクトリ | 説明 |
 |:-----------|:------------|
-|SignallingServer|シグナリングサーバのexeファイルが入っている|
+|SignallingServer|シグナリングサーバのexeファイルが入っている。|
 |WebRtcPluginSample.UnityEditor|UnityEditor用のDLLプロジェクト。プラグインのスタブ。|
-|WebRtcPluginSample.WSA|UWP用のDLLプロジェクト。プラグインの本体|
-|WebRtcPluginSample|プラグインのコードを管理する共有プロジェクト。上二つのプロジェクトから参照される|
-|WebRtcPluginSampleTest.WSA|プラグインの単体テストプロジェクト|
-|WebRtcSampleUnityApp|Unityアプリのプロジェクト|
+|WebRtcPluginSample.WSA|UWP用のDLLプロジェクト。プラグインの本体。|
+|WebRtcPluginSample|プラグインのコードを管理する共有プロジェクト。上二つのプロジェクトから参照される。|
+|WebRtcPluginSampleTest.WSA|プラグインの単体テストプロジェクト。|
+|WebRtcSampleUnityApp|Unityアプリのプロジェクト。|
 
 # 今後
 * データチャネルを使ったサンプルを作る
