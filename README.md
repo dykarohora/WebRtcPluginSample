@@ -15,11 +15,22 @@ WebRTCを使ってHoloLens - UWPアプリ間、Immersive HeadSet - UWPアプリ�
 3. ビルドしてHoloLensかローカルマシン上にビルドします
 
 # 使い方
-1. ./SignallingServer/peerconnection_server.exeを起動します
+1. ./SignallingServer/peerconnection_server.exe(シグナリングサーバ)を起動します
 2. 別マシンでUWPアプリ(PeerCCなど)を起動してシグナリングサーバに接続します
 3. Unityアプリを起動します
 4. 「Connect Server」と書かれているCubeをAirTap(for HoloLens)、もしくはXBoxコントローラのAボタン(for Immersive Headset)でクリックします
 5. peerconnection_server.exeのコンソール上で、接続ユーザ数が「2」であることを確認し、Unityアプリ上で「Connect Peer」をクリックします
+
+# ディレクトリ構成
+
+| ディレクトリ | 説明 |
+|:-----------|:------------|
+|SignallingServer|シグナリングサーバのexeファイルが入っている|
+|WebRtcPluginSample.UnityEditor|UnityEditor用のDLLプロジェクト。プラグインのスタブ。|
+|WebRtcPluginSample.WSA|UWP用のDLLプロジェクト。プラグインの本体|
+|WebRtcPluginSample|プラグインのコードを管理する共有プロジェクト。上二つのプロジェクトから参照される|
+|WebRtcPluginSampleTest.WSA|プラグインの単体テストプロジェクト|
+|WebRtcSampleUnityApp|Unityアプリのプロジェクト|
 
 # 今後
 * データチャネルを使ったサンプルを作る
