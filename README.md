@@ -7,7 +7,8 @@
 * ウェブカメラ (Immersive Headsetで動かす場合)
 
 # 概要
-WebRTCを使ってHoloLens - UWPアプリ間、Immersive HeadSet - UWPアプリ間、HoloLens - Immersive HeadSet間でビデオチャットを行うサンプルです。
+WebRTCを使ってHoloLens - UWPアプリ間、Immersive HeadSet - UWPアプリ間、HoloLens - Immersive HeadSet間でビデオチャットを行うサンプルです。  
+本サンプルはRitchie Lozada氏が公開している[UnityWithWebRTC](https://github.com/ritchielozada/UnityWithWebRTC)をリファクタしたものです。  
 
 # Unityアプリの設定
 1. WebRtcSampleUnityAppを開きます
