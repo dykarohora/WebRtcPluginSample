@@ -532,7 +532,7 @@ PlayerSettings:
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
   metroCertificateIssuer: DefaultCompany
-  metroCertificateNotAfter: 80af83a9dd67d401
+  metroCertificateNotAfter: 00ec325f90cfd401
   metroApplicationDescription: WebRtcSampleUnityApp
   wsaImages: {}
   metroTileShortName: 

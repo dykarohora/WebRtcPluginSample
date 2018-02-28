@@ -29,7 +29,6 @@ namespace HoloToolkit.Unity.InputModule
 
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
             serializedObject.Update();
             EditorGUILayout.Space();
 

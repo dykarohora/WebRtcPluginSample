@@ -1,7 +1,7 @@
 # 環境
 * Unity 2017.2.0f3
-* Visual Studio 2017 (15.3.3)
-* MixedRealityToolkit-Unity for Unity 2017.1.2
+* Visual Studio 2017 (15.5.7)
+* HoloToolkit-Unity-v1.2017.2.0.unitypackage
 * Windows 10 build 1709 (Fall Creaters Update)
 * Xbox Controller (Immersive Headsetで動かす場合)
 * ウェブカメラ (Immersive Headsetで動かす場合)
